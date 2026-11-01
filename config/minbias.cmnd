@@ -1,0 +1,17 @@
+! minbias.cmnd
+! This file contains commands to be read in for a Pythia8 run.
+
+! Settings used in the main program
+Main:numberOfEvents = 100000
+
+! Settings related to the incoming beams
+Beams:idA = 2212
+Beams:idB = 2212
+Beams:eCM = 13600
+
+! Settings related to the process selection
+SoftQCD:inelastic = on
+
+! Settings related to the random number generator
+Random:setSeed = on
+Random:seed = 12345
