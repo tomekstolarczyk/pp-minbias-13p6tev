@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Pythia 8 ships no CMake package, so ask pythia8-config where it is installed.
+# find Pythia 8 
 find_program(PYTHIA8_CONFIG pythia8-config REQUIRED)
 execute_process(COMMAND ${PYTHIA8_CONFIG} --includedir
     OUTPUT_VARIABLE PYTHIA8_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)

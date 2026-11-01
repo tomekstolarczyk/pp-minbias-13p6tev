@@ -11,8 +11,9 @@ Author: Tomasz Stolarczyk
 - ROOT 6, built with C++17
 - Pythia 8
 - C++17 compiler
+- CMake 3.18 or newer
 
-Tested on Ubuntu 22.04 LTS with ROOT 6.40.04, Pythia 8.318 and GCC 11.4.
+Tested on Ubuntu 22.04 LTS with ROOT 6.40.04, Pythia 8.318, CMake 4.4.5 and GCC 12.3.
 
 *Identical histograms are expected only with the same Pythia version and settings.*
 
@@ -40,3 +41,22 @@ export PATH=$HOME/pythia8/bin:$PATH
 ```
 
 Both `root-config --version` and `pythia8-config --version` should then work.
+
+## Build
+
+```bash
+cmake -S . -B build
+cmake --build build
+```
+
+## Event Generation
+
+```bash
+mkdir -p results
+./build/generate config/minbias.cmnd | tee results/generate.log
+```
+
+All settings, including the event count and the random seed, are in
+[config/minbias.cmnd](config/minbias.cmnd). 
+
+

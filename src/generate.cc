@@ -32,16 +32,31 @@ int main(int argc, char* argv[])
     // 4 generate the events
     const int nEvents = pythia.mode("Main:numberOfEvents");
     int nAborted = 0;
+    long nFinal = 0;
     for (int iEvent = 0; iEvent < nEvents; ++iEvent)
     {
+        // an aborted event is incomplete, so it must not be used
         if (!pythia.next())
         {
             ++nAborted;
+            continue;
+        }
+
+        // the event record also holds intermediate particles, keep only the final ones
+        for (int i = 0; i < pythia.event.size(); ++i)
+        {
+            if (pythia.event[i].isFinal())
+            {
+                ++nFinal;
+            }
         }
     }
 
     // 5 print the summary
     pythia.stat();
+    const int nAccepted = nEvents - nAborted;
     std::cout << "Requested events: " << nEvents << ", aborted: " << nAborted << "\n";
+    std::cout << "Final-state particles: " << nFinal
+              << ", per event: " << static_cast<double>(nFinal) / nAccepted << "\n";
     return 0;
 }
