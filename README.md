@@ -52,8 +52,8 @@ cmake --build build
 ## Event Generation
 
 ```bash
-mkdir -p results
-./build/generate config/minbias.cmnd | tee results/generate.log
+mkdir -p data results
+./build/generate config/minbias.cmnd data/events.root | tee results/generate.log
 ```
 
 All settings, including the event count and the random seed, are in

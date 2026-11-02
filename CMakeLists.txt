@@ -18,7 +18,10 @@ execute_process(COMMAND ${PYTHIA8_CONFIG} --libdir
     OUTPUT_VARIABLE PYTHIA8_LIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_library(PYTHIA8_LIBRARY pythia8 HINTS ${PYTHIA8_LIB_DIR} REQUIRED)
 
+# find ROOT: RIO provides TFile, Tree provides TTree
+find_package(ROOT REQUIRED COMPONENTS RIO Tree)
+
 add_executable(generate src/generate.cc)
 target_compile_options(generate PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(generate PRIVATE ${PYTHIA8_INCLUDE_DIR})
-target_link_libraries(generate PRIVATE ${PYTHIA8_LIBRARY})
+target_link_libraries(generate PRIVATE ${PYTHIA8_LIBRARY} ROOT::RIO ROOT::Tree)
