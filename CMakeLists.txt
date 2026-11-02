@@ -25,3 +25,7 @@ add_executable(generate src/generate.cc)
 target_compile_options(generate PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(generate PRIVATE ${PYTHIA8_INCLUDE_DIR})
 target_link_libraries(generate PRIVATE ${PYTHIA8_LIBRARY} ROOT::RIO ROOT::Tree)
+
+add_executable(analysis src/analysis.cc)
+target_compile_options(analysis PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(analysis PRIVATE ROOT::RIO ROOT::Tree)
