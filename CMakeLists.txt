@@ -18,8 +18,8 @@ execute_process(COMMAND ${PYTHIA8_CONFIG} --libdir
     OUTPUT_VARIABLE PYTHIA8_LIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_library(PYTHIA8_LIBRARY pythia8 HINTS ${PYTHIA8_LIB_DIR} REQUIRED)
 
-# find ROOT: RIO provides TFile, Tree provides TTree, Hist provides TH1D
-find_package(ROOT REQUIRED COMPONENTS RIO Tree Hist)
+# find ROOT: RIO provides TFile, Tree provides TTree, TreePlayer provides TTreeReader, Hist provides TH1D
+find_package(ROOT REQUIRED COMPONENTS RIO Tree TreePlayer Hist)
 
 add_executable(generate src/generate.cc)
 target_compile_options(generate PRIVATE -Wall -Wextra -Wpedantic)
@@ -28,4 +28,4 @@ target_link_libraries(generate PRIVATE ${PYTHIA8_LIBRARY} ROOT::RIO ROOT::Tree)
 
 add_executable(analysis src/analysis.cc)
 target_compile_options(analysis PRIVATE -Wall -Wextra -Wpedantic)
-target_link_libraries(analysis PRIVATE ROOT::RIO ROOT::Tree ROOT::Hist)
+target_link_libraries(analysis PRIVATE ROOT::RIO ROOT::Tree ROOT::TreePlayer ROOT::Hist)
