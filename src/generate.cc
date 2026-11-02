@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     // 6 generate the events
     const int nEvents = pythia.mode("Main:numberOfEvents");
     int nAborted = 0;
-    long nFinal = 0;
+    long long nFinal = 0;
     for (int iEvent = 0; iEvent < nEvents; ++iEvent)
     {
         // an aborted event is incomplete, so it must not be used
