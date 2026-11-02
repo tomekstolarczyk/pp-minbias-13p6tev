@@ -63,4 +63,41 @@ The generator writes only final-state particles to `data/events.root`: a tree
 `events` with one entry per event and the branches `pdg`, `charge`, `pt` (GeV),
 `eta` and `phi` (rad), each holding one value per particle.
 
+## Analysis
+
+```bash
+./build/analysis data/events.root results/analysis.root | tee results/analysis.log
+```
+
+The analysis writes 32 histograms to `results/analysis.root`: `hN_<cat>`,
+`hPt_<cat>`, `hEta_<cat>` and `hPhi_<cat>` for eight categories of final-state particles.
+
+| Category | Selection |
+| --- | --- |
+| `all` | every final-state particle, including neutral ones |
+| `ch` | charge ≠ 0 |
+| `pip`, `pim` | π⁺, π⁻ (PDG ±211) |
+| `Kp`, `Km` | K⁺, K⁻ (PDG ±321) |
+| `p`, `pbar` | p, p̄ (PDG ±2212) |
+
+| Histogram | Bins | Range |
+| --- | --- | --- |
+| `hN` | 400 | [0, 400] |
+| `hPt` | 100 | [0, 10] GeV |
+| `hEta` | 100 | [−5, 5] |
+| `hPhi` | 64 | [0, π] |
+
+
+Values outside a range are kept in the underflow and overflow bins; `results/analysis.log` lists them for every histogram.
+
+Two points of the task left room for interpretation:
+
+- **φ range.** Pythia gives φ in (−π, π], the specified range is [0, π]. The histograms
+  are filled with |φ|, which is equivalent because the distribution does not depend on φ.
+- **`all` and `ch`.** The task names both categories, so `all` includes neutral particles
+  and `ch` only charged ones. As a result 12.7% of the events have N ≥ 400 and fall into
+  the overflow of `hN_all`, compared with 0.08% for `hN_ch`.
+
+
+
 

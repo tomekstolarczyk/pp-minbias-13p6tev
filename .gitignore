@@ -3,3 +3,6 @@ build/
 
 # Large intermediate files
 data/
+
+# local tests
+tests/
