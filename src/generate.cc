@@ -1,5 +1,6 @@
 // Generate pp collisions with Pythia 8
 
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -104,6 +105,7 @@ int main(int argc, char* argv[])
     const int nAccepted = nEvents - nAborted;
     std::cout << "Requested events: " << nEvents << ", aborted: " << nAborted << "\n";
     std::cout << "Final-state particles: " << nFinal
-              << ", per event: " << static_cast<double>(nFinal) / nAccepted << "\n";
+              << ", per event: " << std::fixed << std::setprecision(2)
+              << static_cast<double>(nFinal) / nAccepted << "\n";
     return 0;
 }

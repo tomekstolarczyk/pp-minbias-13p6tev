@@ -57,6 +57,10 @@ mkdir -p data results
 ```
 
 All settings, including the event count and the random seed, are in
-[config/minbias.cmnd](config/minbias.cmnd). 
+[config/minbias.cmnd](config/minbias.cmnd).
+
+The generator writes only final-state particles to `data/events.root`: a tree
+`events` with one entry per event and the branches `pdg`, `charge`, `pt` (GeV),
+`eta` and `phi` (rad), each holding one value per particle.
 
 

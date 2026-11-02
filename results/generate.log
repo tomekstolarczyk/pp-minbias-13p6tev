@@ -8,7 +8,7 @@
  |  |   P  P   Y Y     T    H   H   I    A A     This is PYTHIA version 8.318      |  | 
  |  |   PPP     Y      T    HHHHH   I   AAAAA    Last date of change: 16 Sep 2026  |  | 
  |  |   P       Y      T    H   H   I   A   A                                      |  | 
- |  |   P       Y      T    H   H  III  A   A    Now is 01 Nov 2026 at 20:00:29    |  | 
+ |  |   P       Y      T    H   H  III  A   A    Now is 02 Nov 2026 at 20:57:10    |  | 
  |  |                                                                              |  | 
  |  |   Program documentation and an archive of historic versions is found on:     |  | 
  |  |                                                                              |  | 
@@ -2067,4 +2067,4 @@
  |                                                                                                                 | 
  *-------  End PYTHIA Error and Warning Messages Statistics  ------------------------------------------------------* 
 Requested events: 100000, aborted: 0
-Final-state particles: 19265955, per event: 1.927e+02
+Final-state particles: 19265955, per event: 192.66
