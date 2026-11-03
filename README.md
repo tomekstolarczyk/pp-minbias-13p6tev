@@ -49,6 +49,15 @@ cmake -S . -B build
 cmake --build build
 ```
 
+## Full Pipeline
+
+```bash
+scripts/run_all.sh
+```
+
+The script builds the programs and runs every step below in order
+(about 2 minutes on the test machine). It overwrites `data/`, `results/` and `plots/`.
+
 ## Event Generation
 
 ```bash
