@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[])
 {
-    // check that a config file and an output file were given
+    // check that a settings file and an output file were given
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <settings.cmnd> <output.root>\n";
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     }
     auto tree = std::make_unique<TTree>("events", "Final-state particles, one entry per event");
 
-    // connect one list per quantity to a branch; each list holds one value per particle
+    // connect one vector per quantity to a branch; each vector holds one value per particle
     std::vector<int> pdg;
     std::vector<int> charge;
     std::vector<double> pt;
@@ -111,6 +111,5 @@ int main(int argc, char* argv[])
         std::cout << "Final-state particles: " << nFinal << ", mean per event: " << std::fixed
                   << std::setprecision(2) << static_cast<double>(nFinal) / nAccepted << "\n";
     }
-    // a non-zero exit code stops run_all.sh when the run is incomplete
     return nAccepted == nEvents ? 0 : 1;
 }

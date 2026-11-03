@@ -1,7 +1,8 @@
-// Analyse final-state particles from the event tree
+// Fills multiplicity, pT, eta and phi histograms of final-state particles for eight categories.
+// Usage: analysis <events.root> <analysis.root>
 
 #include <cmath>
-#include <iomanip>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -48,7 +49,7 @@ struct Category
     Selector selects;
 };
 
-// "all" includes neutral particles, "ch" only charged ones 
+// "all" includes neutral particles, "ch" only charged ones
 const std::vector<Category> categories = {
     {"all", "all final-state particles", [](int, int) { return true; }},
     {"ch", "charged particles", [](int, int charge) { return charge != 0; }},
@@ -60,12 +61,13 @@ const std::vector<Category> categories = {
     {"pbar", "#bar{p}", [](int pdg, int) { return pdg == -pdgProton; }},
 };
 
-// create a histogram that belongs to us, not to the current ROOT file;
+// creates a histogram owned by the caller, not by the current ROOT file;
 // the title has the form "title;x-axis label;y-axis label"
 std::unique_ptr<TH1D> makeHistogram(const std::string& name, const std::string& title,
                                     int nBins, double min, double max)
 {
     auto histogram = std::make_unique<TH1D>(name.c_str(), title.c_str(), nBins, min, max);
+    // detach it from the current ROOT file, so that only the unique_ptr deletes it
     histogram->SetDirectory(nullptr);
     // keep the sum of squared weights, so bin errors stay correct after scaling
     histogram->Sumw2();
@@ -80,6 +82,7 @@ struct CategoryHistograms
     std::unique_ptr<TH1D> phi;
 };
 
+// four histograms (N, pT, eta, phi) for each category
 CategoryHistograms makeCategoryHistograms(const Category& category)
 {
     const std::string& name = category.name;
@@ -99,29 +102,26 @@ CategoryHistograms makeCategoryHistograms(const Category& category)
 // values outside the histogram range are kept in the underflow and overflow bins; report them
 void printOutOfRange(const TH1D& histogram)
 {
-    // every fill has weight 1, so these sums of weights are whole numbers of entries
-    const auto entries = static_cast<long long>(histogram.GetEntries());
-    const auto underflow = static_cast<long long>(histogram.GetBinContent(0));
-    const auto overflow = static_cast<long long>(histogram.GetBinContent(histogram.GetNbinsX() + 1));
-    std::cout << std::left << std::setw(10) << histogram.GetName() << std::right
-              << " entries " << std::setw(8) << entries
-              << "  underflow " << std::setw(7) << underflow
-              << " (" << std::setw(6) << 100.0 * underflow / entries << "%)"
-              << "  overflow " << std::setw(7) << overflow
-              << " (" << std::setw(6) << 100.0 * overflow / entries << "%)\n";
+    // ROOT returns these counts as double
+    const double entries = histogram.GetEntries();
+    const double underflow = histogram.GetBinContent(0);
+    const double overflow = histogram.GetBinContent(histogram.GetNbinsX() + 1);
+    std::printf("%-10s entries %8.0f  underflow %7.0f (%6.3f%%)  overflow %7.0f (%6.3f%%)\n",
+                histogram.GetName(), entries, underflow, 100.0 * underflow / entries, overflow,
+                100.0 * overflow / entries);
 }
 }
 
 int main(int argc, char* argv[])
 {
-    // 1 check that an input file and an output file were given
+    // check that an input file and an output file were given
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <events.root> <analysis.root>\n";
         return 1;
     }
 
-    // 2 open the input file and find the tree "events" inside it
+    // open the input file and find the tree "events" inside it
     std::unique_ptr<TFile> inFile(TFile::Open(argv[1], "READ"));
     if (!inFile)
     {
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // 3 create the output file now, so a wrong path fails before the long loop
+    // create the output file before the long loop, so that a wrong path fails early
     std::unique_ptr<TFile> outFile(TFile::Open(argv[2], "RECREATE"));
     if (!outFile)
     {
@@ -144,18 +144,18 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // 4 create four histograms for every category
+    // create four histograms for every category
     std::vector<CategoryHistograms> histograms;
     for (const Category& category : categories)
     {
         histograms.push_back(makeCategoryHistograms(category));
     }
 
-    // 5 read the events one by one and fill the histograms
+    // read the events one by one and fill the histograms
     long long nEvents = 0;
     long long nParticles = 0;
     {
-        // the reader uses the tree in its destructor, so this block ends before the file is closed
+        // the reader uses the tree in its destructor, so this block ends before the input file is closed
         TTreeReader reader(tree);
         // each array holds one value per particle of the current event
         TTreeReaderArray<int> pdg(reader, "pdg");
@@ -173,6 +173,7 @@ int main(int argc, char* argv[])
             std::vector<int> multiplicity(categories.size(), 0);
             for (std::size_t i = 0; i < pdg.GetSize(); ++i)
             {
+                // a particle can be in several categories (a pi+ is in all, ch and pip), so check them all
                 for (std::size_t c = 0; c < categories.size(); ++c)
                 {
                     if (!categories[c].selects(pdg[i], charge[i]))
@@ -186,15 +187,14 @@ int main(int argc, char* argv[])
                     histograms[c].phi->Fill(std::abs(phi[i]));
                 }
             }
-
-            // one entry per event and category, also when the multiplicity is zero
+            // fill the multiplicities once per event, also when they are zero
             for (std::size_t c = 0; c < categories.size(); ++c)
             {
                 histograms[c].n->Fill(multiplicity[c]);
             }
         }
 
-        // stopped for a reason other than the end
+        // Next() also returns false on a read error, not only at the end of the tree
         if (reader.GetEntryStatus() != TTreeReader::kEntryBeyondEnd)
         {
             std::cerr << "Error while reading " << argv[1] << " at event " << nEvents << "\n";
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
     }
     inFile->Close();
 
-    // 6 write the histograms to the output file and close it
+    // write the histograms to the output file and close it
     for (const CategoryHistograms& h : histograms)
     {
         outFile->WriteTObject(h.n.get());
@@ -213,9 +213,9 @@ int main(int argc, char* argv[])
     }
     outFile->Close();
 
-    // 7 print the summary
+    // the particle count can be compared with the one printed by the generator
     std::cout << "Events: " << nEvents << ", final-state particles: " << nParticles << "\n";
-    std::cout << "Values outside the histogram ranges:\n" << std::fixed << std::setprecision(3);
+    std::cout << "Values outside the histogram ranges:\n";
     for (const CategoryHistograms& h : histograms)
     {
         printOutOfRange(*h.n);
