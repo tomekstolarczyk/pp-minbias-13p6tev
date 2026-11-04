@@ -29,6 +29,6 @@ echo "=== Analysis"
 ./build/analysis data/events.root results/analysis.root | tee results/analysis.log
 
 echo "=== Plots"
-root -l -b -q 'src/draw_plots.C("results/analysis.root", "plots")'
+root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 
 echo "=== Done"
