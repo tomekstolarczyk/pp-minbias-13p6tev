@@ -1,0 +1,26 @@
+Processing macros/compare_alice.C("data/events.root", "data/events_alice_primaries.root", "plots/alice_comparison")...
+Comparison with ALICE, pp at 13.6 TeV (arXiv:2602.10658)
+
+INEL>0 events: task run 86546 of 100000 (86.55%), primaries run 86262 of 100000 (86.26%)
+
+<dN_ch/deta> in |eta| < 0.5, step by step towards the ALICE definitions:
+  task run: INEL, default decays                        6.675 +- 0.024
+  task run: INEL>0, default decays                      7.713 +- 0.025
+  primaries run: INEL, ALICE primary particles          6.042 +- 0.021
+  primaries run: INEL>0, ALICE primary particles        7.004 +- 0.023
+  ALICE: INEL>0, primary particles                      7.100 +- 0.180
+  matched definitions / ALICE = 0.987, difference = -0.5 sigma (ALICE uncertainty)
+
+<dN_ch/deta> in |eta| < 0.5 per FT0 multiplicity class (INEL>0, ALICE primary particles):
+  class         ALICE data   ALICE PYTHIA       our PYTHIA  ours / data
+  0-1%        21.78 +- 0.38          25.50     25.96 +- 0.28        1.192
+  1-5%        18.48 +- 0.25          20.71     20.91 +- 0.12        1.132
+  5-10%       15.76 +- 0.22          17.19     17.44 +- 0.10        1.107
+  10-15%      13.89 +- 0.19          14.71     14.66 +- 0.10        1.055
+  15-20%      12.50 +- 0.17          12.62     12.58 +- 0.09        1.007
+  20-30%      10.86 +- 0.15          10.02     10.10 +- 0.06        0.930
+  30-40%       9.09 +- 0.13           7.51      7.60 +- 0.05        0.836
+  40-50%       7.63 +- 0.11           5.60      5.64 +- 0.04        0.740
+  50-70%       5.87 +- 0.09           3.72      3.76 +- 0.02        0.640
+  70-100%      3.69 +- 0.06           2.47      2.49 +- 0.01        0.676
+(int) 0

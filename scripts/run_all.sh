@@ -34,4 +34,8 @@ root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 echo "=== Check against the task"
 root -l -b -q tests/check_task.C
 
+echo "=== Extra: comparison with ALICE (not part of the task)"
+./build/generate config/minbias_alice_primaries.cmnd data/events_alice_primaries.root > results/generate_alice_primaries.log
+root -l -b -q 'macros/compare_alice.C("data/events.root", "data/events_alice_primaries.root", "plots/alice_comparison")' | tee results/compare_alice.log
+
 echo "=== Done"
