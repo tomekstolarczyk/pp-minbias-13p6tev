@@ -71,6 +71,9 @@ std::unique_ptr<TH1D> makeHistogram(const std::string& name, const std::string& 
     histogram->SetDirectory(nullptr);
     // keep the sum of squared weights, so bin errors stay correct after scaling
     histogram->Sumw2();
+    // include under- and overflow in the mean and standard deviation, so they are the true values;
+    // the setting is stored with the histogram, so it also holds when the file is read later
+    histogram->SetStatOverflows(TH1::kConsider);
     return histogram;
 }
 
@@ -99,16 +102,17 @@ CategoryHistograms makeCategoryHistograms(const Category& category)
     };
 }
 
-// values outside the histogram range are kept in the underflow and overflow bins; report them
-void printOutOfRange(const TH1D& histogram)
+// one line per histogram: the true mean and standard deviation (over all entries, see makeHistogram)
+// and the values outside the range, which are kept in the underflow and overflow bins
+void printStatistics(const TH1D& histogram)
 {
     // ROOT returns these counts as double
     const double entries = histogram.GetEntries();
     const double underflow = histogram.GetBinContent(0);
     const double overflow = histogram.GetBinContent(histogram.GetNbinsX() + 1);
-    std::printf("%-10s entries %8.0f  underflow %7.0f (%6.3f%%)  overflow %7.0f (%6.3f%%)\n",
-                histogram.GetName(), entries, underflow, 100.0 * underflow / entries, overflow,
-                100.0 * overflow / entries);
+    std::printf("%-10s %9.0f %9.4f %9.4f %8.0f (%6.3f%%) %8.0f (%6.3f%%)\n", histogram.GetName(),
+                entries, histogram.GetMean(), histogram.GetStdDev(), underflow,
+                100.0 * underflow / entries, overflow, 100.0 * overflow / entries);
 }
 }
 
@@ -215,13 +219,15 @@ int main(int argc, char* argv[])
 
     // the particle count can be compared with the one printed by the generator
     std::cout << "Events: " << nEvents << ", final-state particles: " << nParticles << "\n";
-    std::cout << "Values outside the histogram ranges:\n";
+    std::cout << "Statistics over all entries, including those outside the histogram range:\n";
+    std::printf("%-10s %9s %9s %9s %19s %19s\n", "histogram", "entries", "mean", "std dev",
+                "underflow", "overflow");
     for (const CategoryHistograms& h : histograms)
     {
-        printOutOfRange(*h.n);
-        printOutOfRange(*h.pt);
-        printOutOfRange(*h.eta);
-        printOutOfRange(*h.phi);
+        printStatistics(*h.n);
+        printStatistics(*h.pt);
+        printStatistics(*h.eta);
+        printStatistics(*h.phi);
     }
     return 0;
 }
