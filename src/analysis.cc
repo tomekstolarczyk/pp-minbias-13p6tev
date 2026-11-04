@@ -71,8 +71,7 @@ std::unique_ptr<TH1D> makeHistogram(const std::string& name, const std::string& 
     histogram->SetDirectory(nullptr);
     // keep the sum of squared weights, so bin errors stay correct after scaling
     histogram->Sumw2();
-    // include under- and overflow in the mean and standard deviation, so they are the true values;
-    // the setting is stored with the histogram, so it also holds when the file is read later
+    // include under- and overflow in the mean and standard deviation, so they are the true values
     histogram->SetStatOverflows(TH1::kConsider);
     return histogram;
 }
