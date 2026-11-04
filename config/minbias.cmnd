@@ -12,6 +12,10 @@ Beams:eCM = 13600
 ! Settings related to the process selection
 SoftQCD:inelastic = on
 
+! Settings related to the model parameters
+! Monash 2013 tune: the Pythia default, set explicitly to document the model behind the results
+Tune:pp = 14
+
 ! Settings related to the random number generator
 Random:setSeed = on
 Random:seed = 12345
