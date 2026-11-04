@@ -127,7 +127,7 @@ void save(TCanvas& canvas, const std::string& baseName)
     canvas.SaveAs((baseName + ".pdf").c_str());
 }
 
-// one histogram on its own canvas; the statistics box shows what lies outside the range
+// one histogram on its own canvas, with a statistics box
 bool drawSingle(TFile& file, const Variable& variable, const Curve& curve, const std::string& nEvents,
                 const std::string& outDir)
 {
@@ -217,11 +217,12 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         }
     }
 
-    // statistics box: entries, underflow and overflow
-    gStyle->SetOptStat("eou");
+    // statistics box: entries, mean, standard deviation, underflow and overflow; the analysis
+    // stores the mean and standard deviation over all entries, including those outside the range
+    gStyle->SetOptStat("emrou");
     gStyle->SetStatX(0.88);
     gStyle->SetStatY(0.88);
-    gStyle->SetStatFormat("8.0f");
+    gStyle->SetStatFormat("6.4g");
     gStyle->SetTitleFontSize(0.045);
     // axis labels get at most three digits; larger numbers share a common factor such as x10^3
     TGaxis::SetMaxDigits(3);
