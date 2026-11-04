@@ -1,6 +1,6 @@
 // Draws the histograms from analysis.root and saves every plot as PNG and PDF:
 // each histogram on its own canvas (32 plots, in <outDir>/single) and, for every variable,
-// the categories of one group overlaid with a legend (8 plots, in <outDir>/overlay).
+// the categories of one group overlaid with a legend (16 plots, in <outDir>/overlay).
 // Usage: root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 // The exit code is 0 when every plot was saved and 1 otherwise.
 
@@ -19,6 +19,7 @@
 #include "TH1.h"
 #include "TLatex.h"
 #include "TLegend.h"
+#include "TLine.h"
 #include "TStyle.h"
 
 // one of the four histogrammed quantities and how to draw it
@@ -31,6 +32,7 @@ struct Variable
     std::string yTitle;
     bool logY;   // logarithmic y axis, for counts spanning several orders of magnitude
     bool points; // markers with error bars instead of a line
+    bool ratio;  // overlays get a panel with the ratio of the two categories
 };
 
 // one category drawn as a curve
@@ -44,16 +46,23 @@ struct Curve
     Style_t markerStyle;
 };
 
-// categories that are compared on one overlay plot
+// two categories compared on one overlay plot
 struct Group
 {
     std::string title;
-    std::string tag; // used in the file names, e.g. identified
+    std::string tag; // used in the file names, e.g. pions
     std::vector<Curve> curves;
+    std::string ratioTitle; // second category divided by the first, e.g. #bar{p}/p
+    double ratioMin;
+    double ratioMax;
+    bool subset; // the second category is part of the first (charged of all)
 };
 
 // text size of the labels and legends
 constexpr double textSize = 0.035;
+
+// fraction of the overlay canvas taken by the ratio panel
+constexpr double ratioPadHeight = 0.3;
 
 // reads one histogram from the file and sets its colour, line and marker; the file owns it
 TH1D* getStyledHistogram(TFile& file, const Variable& variable, const Curve& curve)
@@ -101,15 +110,13 @@ void setFrame(TH1D& frame, const Variable& variable, const std::string& title, d
     }
 }
 
-void prepareCanvas(TCanvas& canvas, const Variable& variable)
+void prepareCanvas(TVirtualPad& canvas, const Variable& variable)
 {
     canvas.SetLeftMargin(0.13);
     canvas.SetLogy(variable.logY);
-    // tick marks on all four sides
     canvas.SetTicks(1, 1);
 }
 
-// tells where the data come from
 void drawInfo(const std::string& nEvents)
 {
     TLatex latex;
@@ -148,45 +155,112 @@ bool drawSingle(TFile& file, const Variable& variable, const Curve& curve, const
     return true;
 }
 
-// all categories of one group on one canvas, told apart by the legend
+// the ratio of the second category to the first, drawn in a panel below the overlay
+std::unique_ptr<TH1D> makeRatio(const TH1D& first, const TH1D& second, const Variable& variable,
+                                const Group& group)
+{
+    std::unique_ptr<TH1D> ratio(static_cast<TH1D*>(second.Clone()));
+    ratio->SetDirectory(nullptr);
+    // the errors come from Sumw2; for a subset they are binomial, otherwise the counts are independent
+    ratio->Divide(&second, &first, 1.0, 1.0, group.subset ? "B" : "");
+    ratio->SetTitle(("; " + variable.xTitle + ";" + group.ratioTitle).c_str());
+    ratio->SetMinimum(group.ratioMin);
+    ratio->SetMaximum(group.ratioMax);
+    ratio->SetLineColor(kBlack);
+    ratio->SetLineStyle(kSolid);
+    ratio->SetMarkerColor(kBlack);
+    ratio->SetMarkerStyle(kFullCircle);
+    ratio->SetMarkerSize(0.5);
+
+    // text sizes are fractions of the pad height, so the small panel needs larger ones
+    const double scale = (1.0 - ratioPadHeight) / ratioPadHeight;
+    TAxis* x = ratio->GetXaxis();
+    TAxis* y = ratio->GetYaxis();
+    x->SetLabelSize(textSize * scale);
+    x->SetTitleSize(textSize * scale);
+    y->SetLabelSize(textSize * scale);
+    y->SetTitleSize(textSize * scale);
+    y->SetTitleOffset(1.4 / scale);
+    y->SetNdivisions(505);
+    return ratio;
+}
+
+// two categories on one canvas, told apart by the legend
 bool drawOverlay(TFile& file, const Variable& variable, const Group& group, const std::string& nEvents,
                  const std::string& outDir)
 {
-    std::vector<TH1D*> histograms;
+    std::vector<std::unique_ptr<TH1D>> histograms;
     double maximum = 0.0;
+    int lastFilledBin = 1;
     for (const Curve& curve : group.curves)
     {
-        TH1D* histogram = getStyledHistogram(file, variable, curve);
-        if (!histogram)
+        const TH1D* original = getStyledHistogram(file, variable, curve);
+        if (!original)
         {
             return false;
         }
-        // the legend takes the place of the statistics box
+        std::unique_ptr<TH1D> histogram(static_cast<TH1D*>(original->Clone()));
+        histogram->SetDirectory(nullptr);
         histogram->SetStats(false);
         maximum = std::max(maximum, highestBin(*histogram));
-        histograms.push_back(histogram);
+        lastFilledBin = std::max(lastFilledBin, histogram->FindLastBinAbove(0.0));
+        histograms.push_back(std::move(histogram));
     }
-    setFrame(*histograms.front(), variable, variable.title + ", " + group.title, maximum);
+    TH1D& frame = *histograms.front();
+    setFrame(frame, variable, variable.title + ", " + group.title, maximum);
+    // the single plots show the full range from the task; an overlay ends at the last filled bin
+    frame.GetXaxis()->SetRange(1, lastFilledBin);
 
-    // particle and antiparticle share a row, so six entries take three rows
-    const int nColumns = group.curves.size() > 3 ? 2 : 1;
-    const int nRows = (static_cast<int>(group.curves.size()) + nColumns - 1) / nColumns;
-    // the canvas still lists the legend when it is destroyed, so the legend is declared first
-    TLegend legend(0.62, 0.86 - 0.06 * nRows, 0.88, 0.86);
-    legend.SetNColumns(nColumns);
+    // objects drawn on the canvas are declared before it
+    std::unique_ptr<TH1D> ratio;
+    if (variable.ratio)
+    {
+        ratio = makeRatio(*histograms[0], *histograms[1], variable, group);
+        ratio->GetXaxis()->SetRange(1, lastFilledBin);
+    }
+    TLine one(frame.GetXaxis()->GetBinLowEdge(1), 1.0, frame.GetXaxis()->GetBinUpEdge(lastFilledBin), 1.0);
+    one.SetLineStyle(kDashed);
+    one.SetLineColor(kGray + 2);
+    TLegend legend(0.62, 0.86 - 0.06 * group.curves.size(), 0.88, 0.86);
     legend.SetBorderSize(0);
     legend.SetFillStyle(0);
     legend.SetTextFont(42);
     legend.SetTextSize(textSize);
-    TCanvas canvas(("c_" + variable.fileTag + "_" + group.tag).c_str(), "", 800, 600);
-    prepareCanvas(canvas, variable);
+    TCanvas canvas(("c_" + variable.fileTag + "_" + group.tag).c_str(), "", 800, variable.ratio ? 800 : 600);
 
+    // with a ratio the canvas is split into two pads owned by the canvas
+    TVirtualPad* plotPad = &canvas;
+    if (variable.ratio)
+    {
+        canvas.Divide(1, 2);
+        plotPad = canvas.cd(1);
+        plotPad->SetPad(0.0, ratioPadHeight, 1.0, 1.0);
+        plotPad->SetBottomMargin(0.02);
+        frame.GetXaxis()->SetLabelSize(0.0);
+        frame.GetXaxis()->SetTitleSize(0.0);
+
+        TVirtualPad* ratioPad = canvas.cd(2);
+        ratioPad->SetPad(0.0, 0.0, 1.0, ratioPadHeight);
+        ratioPad->SetTopMargin(0.03);
+        ratioPad->SetBottomMargin(0.35);
+        ratioPad->SetLeftMargin(0.13);
+        ratioPad->SetTicks(1, 1);
+        ratioPad->SetGridy();
+        ratio->Draw("E");
+        if (group.ratioMin < 1.0 && group.ratioMax > 1.0)
+        {
+            one.Draw();
+        }
+    }
+
+    plotPad->cd();
+    prepareCanvas(*plotPad, variable);
     const std::string option = variable.points ? "P" : "HIST";
     for (std::size_t i = 0; i < histograms.size(); ++i)
     {
         // SAME draws into the frame of the first histogram
         histograms[i]->Draw(i == 0 ? option.c_str() : (option + " SAME").c_str());
-        legend.AddEntry(histograms[i], group.curves[i].legend.c_str(), variable.points ? "p" : "l");
+        legend.AddEntry(histograms[i].get(), group.curves[i].legend.c_str(), variable.points ? "p" : "l");
     }
     legend.Draw();
     drawInfo(nEvents);
@@ -217,14 +291,13 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         }
     }
 
-    // statistics box: entries, mean, standard deviation, underflow and overflow; the analysis
-    // stores the mean and standard deviation over all entries, including those outside the range
+    // statistics box: entries, mean, standard deviation, underflow and overflow
     gStyle->SetOptStat("emrou");
     gStyle->SetStatX(0.88);
     gStyle->SetStatY(0.88);
     gStyle->SetStatFormat("6.4g");
     gStyle->SetTitleFontSize(0.045);
-    // axis labels get at most three digits; larger numbers share a common factor such as x10^3
+    gStyle->SetErrorX(0.0);
     TGaxis::SetMaxDigits(3);
 
     // every multiplicity histogram has exactly one entry per event
@@ -237,28 +310,41 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
     const std::string nEvents = std::to_string(std::llround(nCharged->GetEntries()));
 
     const std::vector<Variable> variables = {
-        {"hN", "multiplicity", "Multiplicity", "Multiplicity N", "Events", true, true},
-        {"hPt", "pt", "Transverse momentum", "p_{T} [GeV]", "Particles / 0.1 GeV", true, false},
-        {"hEta", "eta", "Pseudorapidity", "#eta", "Particles / 0.1", false, false},
-        {"hPhi", "phi", "Azimuthal angle", "#phi [rad]", "Particles / (#pi/64 rad)", false, false},
+        {"hN", "multiplicity", "Multiplicity", "Multiplicity N", "Events", true, true, false},
+        {"hPt", "pt", "Transverse momentum", "p_{T} [GeV]", "Particles / 0.1 GeV", true, false, true},
+        {"hEta", "eta", "Pseudorapidity", "#eta", "Particles / 0.1", false, false, true},
+        {"hPhi", "phi", "Azimuthal angle", "#phi [rad]", "Particles / 0.049 rad", false, false, true},
     };
 
-    // colour tells the particle species; solid lines and full markers mean positive charge
+    // particle and antiparticle are compared on their own canvas, so the scale fits both;
+    // red with full markers means positive charge, blue with open markers negative charge
+    const Color_t positive = kRed + 1;
+    const Color_t negative = kAzure + 2;
     const std::vector<Group> groups = {
         {"all and charged particles", "all_ch",
          {
              {"all", "all final-state", "all final-state particles", kBlack, kSolid, kFullCircle},
              {"ch", "charged", "charged particles", kMagenta + 2, kSolid, kFullCircle},
-         }},
-        {"identified hadrons", "identified",
+         },
+         "charged / all", 0.0, 1.0, true},
+        {"#pi^{+} and #pi^{-}", "pions",
          {
-             {"pip", "#pi^{+}", "#pi^{+}", kRed + 1, kSolid, kFullCircle},
-             {"pim", "#pi^{-}", "#pi^{-}", kRed + 1, kDashed, kOpenCircle},
-             {"Kp", "K^{+}", "K^{+}", kBlue + 1, kSolid, kFullCircle},
-             {"Km", "K^{-}", "K^{-}", kBlue + 1, kDashed, kOpenCircle},
-             {"p", "p", "p", kGreen + 2, kSolid, kFullCircle},
-             {"pbar", "#bar{p}", "#bar{p}", kGreen + 2, kDashed, kOpenCircle},
-         }},
+             {"pip", "#pi^{+}", "#pi^{+}", positive, kSolid, kFullCircle},
+             {"pim", "#pi^{-}", "#pi^{-}", negative, kDashed, kOpenCircle},
+         },
+         "#pi^{-} / #pi^{+}", 0.9, 1.1, false},
+        {"K^{+} and K^{-}", "kaons",
+         {
+             {"Kp", "K^{+}", "K^{+}", positive, kSolid, kFullCircle},
+             {"Km", "K^{-}", "K^{-}", negative, kDashed, kOpenCircle},
+         },
+         "K^{-} / K^{+}", 0.8, 1.2, false},
+        {"p and #bar{p}", "protons",
+         {
+             {"p", "p", "p", positive, kSolid, kFullCircle},
+             {"pbar", "#bar{p}", "#bar{p}", negative, kDashed, kOpenCircle},
+         },
+         "#bar{p} / p", 0.4, 1.2, false},
     };
 
     for (const Variable& variable : variables)

@@ -220,7 +220,7 @@ bool checkDrawing()
     bool overlays = contains(macro, "TLegend");
     for (const std::string variable : {"multiplicity", "pt", "eta", "phi"})
     {
-        for (const std::string group : {"all_ch", "identified"})
+        for (const std::string group : {"all_ch", "pions", "kaons", "protons"})
         {
             const std::string base = plotsDir + "/overlay/" + variable + "_" + group;
             overlays = overlays && std::filesystem::exists(base + ".png") && std::filesystem::exists(base + ".pdf");
