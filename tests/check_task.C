@@ -210,7 +210,7 @@ bool checkDrawing()
     {
         for (const Category& category : categories)
         {
-            const std::string base = plotsDir + "/single/" + binning.prefix + "_" + category.name;
+            const std::string base = plotsDir + "/histograms_single/" + binning.prefix + "_" + category.name;
             singlePlots = singlePlots && std::filesystem::exists(base + ".png") &&
                           std::filesystem::exists(base + ".pdf");
         }
@@ -222,7 +222,7 @@ bool checkDrawing()
     {
         for (const std::string group : {"all_ch", "pions", "kaons", "protons"})
         {
-            const std::string base = plotsDir + "/overlay/" + variable + "_" + group;
+            const std::string base = plotsDir + "/histograms_overlay/" + variable + "_" + group;
             overlays = overlays && std::filesystem::exists(base + ".png") && std::filesystem::exists(base + ".pdf");
         }
     }

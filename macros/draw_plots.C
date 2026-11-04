@@ -1,6 +1,7 @@
 // Draws the histograms from analysis.root and saves every plot as PNG and PDF:
-// each histogram on its own canvas (32 plots, in <outDir>/single) and, for every variable,
-// the categories of one group overlaid with a legend (16 plots, in <outDir>/overlay).
+// each histogram on its own canvas (32 plots, in <outDir>/histograms_single) and, for every variable,
+// the categories of one group overlaid with a legend (16 plots, in <outDir>/histograms_overlay),
+// plus the shapes of the pT and eta distributions of pions, kaons and protons (2 plots, same directory).
 // Usage: root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 // The exit code is 0 when every plot was saved and 1 otherwise.
 
@@ -268,6 +269,79 @@ bool drawOverlay(TFile& file, const Variable& variable, const Group& group, cons
     return true;
 }
 
+// pions, kaons and protons (both charges together) normalised to unit area, so that only the shapes
+// of the distributions are compared, not the numbers of particles
+bool drawShapes(TFile& file, const Variable& variable, const std::string& yTitle, bool showMean,
+                const std::string& nEvents, const std::string& outDir)
+{
+    struct Species
+    {
+        std::string positive; // histogram name suffixes of the two charges
+        std::string negative;
+        std::string legend;
+        Color_t color;
+        Style_t lineStyle;
+    };
+    const std::vector<Species> species = {
+        {"pip", "pim", "#pi^{+} + #pi^{-}", kBlack, kSolid},
+        {"Kp", "Km", "K^{+} + K^{-}", kGreen + 2, kDashed},
+        {"p", "pbar", "p + #bar{p}", kMagenta + 2, kDotted},
+    };
+
+    std::vector<std::unique_ptr<TH1D>> histograms;
+    std::vector<std::string> legends;
+    double maximum = 0.0;
+    for (const Species& s : species)
+    {
+        const TH1D* positive = file.Get<TH1D>((variable.prefix + "_" + s.positive).c_str());
+        const TH1D* negative = file.Get<TH1D>((variable.prefix + "_" + s.negative).c_str());
+        if (!positive || !negative)
+        {
+            std::cerr << "No " << variable.prefix << " histogram of " << s.positive << " or " << s.negative
+                      << " in " << file.GetName() << "\n";
+            return false;
+        }
+        std::unique_ptr<TH1D> histogram(static_cast<TH1D*>(positive->Clone()));
+        histogram->SetDirectory(nullptr);
+        histogram->Add(negative);
+        // the mean is taken before scaling; it includes the overflow (see analysis.cc)
+        legends.push_back(showMean ? s.legend + Form(", #LTp_{T}#GT = %.2f GeV", histogram->GetMean())
+                                   : s.legend);
+        // divide by the number of particles in the range and by the bin width, so the area is 1
+        histogram->Scale(1.0 / histogram->Integral(), "width");
+        histogram->SetStats(false);
+        histogram->SetLineColor(s.color);
+        histogram->SetLineStyle(s.lineStyle);
+        histogram->SetLineWidth(2);
+        maximum = std::max(maximum, highestBin(*histogram));
+        histograms.push_back(std::move(histogram));
+    }
+
+    TH1D& frame = *histograms.front();
+    frame.SetTitle((variable.title + ", shapes (unit area);" + variable.xTitle + ";" + yTitle).c_str());
+    frame.GetYaxis()->SetTitleOffset(1.4);
+    // a log axis shows six orders of magnitude below the peak, a linear one starts at 0
+    frame.SetMinimum(variable.logY ? maximum * 1e-6 : 0.0);
+    frame.SetMaximum(variable.logY ? maximum * 50.0 : maximum * 1.5);
+
+    TLegend legend(0.52, 0.68, 0.88, 0.86);
+    legend.SetBorderSize(0);
+    legend.SetFillStyle(0);
+    legend.SetTextFont(42);
+    legend.SetTextSize(textSize);
+    TCanvas canvas(("c_" + variable.fileTag + "_shapes").c_str(), "", 800, 600);
+    prepareCanvas(canvas, variable);
+    for (std::size_t i = 0; i < histograms.size(); ++i)
+    {
+        histograms[i]->Draw(i == 0 ? "HIST" : "HIST SAME");
+        legend.AddEntry(histograms[i].get(), legends[i].c_str(), "l");
+    }
+    legend.Draw();
+    drawInfo(nEvents);
+    save(canvas, outDir + "/" + variable.fileTag + "_shapes");
+    return true;
+}
+
 int draw_plots(const char* inFileName = "results/analysis.root", const char* outDir = "plots")
 {
     std::unique_ptr<TFile> file(TFile::Open(inFileName, "READ"));
@@ -278,8 +352,8 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
     }
 
     // single plots and overlays go to separate directories
-    const std::string singleDir = std::string(outDir) + "/single";
-    const std::string overlayDir = std::string(outDir) + "/overlay";
+    const std::string singleDir = std::string(outDir) + "/histograms_single";
+    const std::string overlayDir = std::string(outDir) + "/histograms_overlay";
     for (const std::string& dir : {singleDir, overlayDir})
     {
         std::error_code error;
@@ -363,6 +437,16 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
                 }
             }
         }
+    }
+
+    // shapes only for pT and eta: phi is flat by symmetry, and multiplicities of different
+    // particles are not comparable in shape
+    const Variable& pt = variables[1];
+    const Variable& eta = variables[2];
+    if (!drawShapes(*file, pt, "(1/N) dN/dp_{T} [GeV^{-1}]", true, nEvents, overlayDir) ||
+        !drawShapes(*file, eta, "(1/N) dN/d#eta", false, nEvents, overlayDir))
+    {
+        return 1;
     }
     return 0;
 }
