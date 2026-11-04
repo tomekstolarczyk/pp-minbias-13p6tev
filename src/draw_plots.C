@@ -29,16 +29,16 @@ struct Variable
     std::string title;
     std::string xTitle;
     std::string yTitle;
-    bool logY;   
-    bool points; 
+    bool logY;   // logarithmic y axis, for counts spanning several orders of magnitude
+    bool points; // markers with error bars instead of a line
 };
 
 // one category drawn as a curve
 struct Curve
 {
     std::string category; // histogram name suffix, e.g. pip
-    std::string legend;   
-    std::string title;    
+    std::string legend;   // text in the legend of an overlay plot
+    std::string title;    // used in the title of the single plot
     Color_t color;
     Style_t lineStyle;
     Style_t markerStyle;
@@ -55,7 +55,7 @@ struct Group
 // text size of the labels and legends
 constexpr double textSize = 0.035;
 
-// draw the histograms function
+// reads one histogram from the file and sets its colour, line and marker; the file owns it
 TH1D* getStyledHistogram(TFile& file, const Variable& variable, const Curve& curve)
 {
     const std::string name = variable.prefix + "_" + curve.category;
@@ -75,13 +75,13 @@ TH1D* getStyledHistogram(TFile& file, const Variable& variable, const Curve& cur
     return histogram;
 }
 
-// read the highest bin itself
+// content of the highest bin; GetMaximum() would return a value set earlier with SetMaximum()
 double highestBin(const TH1D& histogram)
 {
     return histogram.GetBinContent(histogram.GetMaximumBin());
 }
 
-// the first histogram drawn on a canvas sets the frame: title, axis titles and y range;
+// the first histogram drawn on a canvas sets the frame: title, axis titles and y range
 void setFrame(TH1D& frame, const Variable& variable, const std::string& title, double maximum)
 {
     frame.SetTitle((title + ";" + variable.xTitle + ";" + variable.yTitle).c_str());
