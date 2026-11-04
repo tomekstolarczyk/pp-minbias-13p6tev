@@ -31,4 +31,7 @@ echo "=== Analysis"
 echo "=== Plots"
 root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 
+echo "=== Check against the task"
+root -l -b -q tests/check_task.C
+
 echo "=== Done"
