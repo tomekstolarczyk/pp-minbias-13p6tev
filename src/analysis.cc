@@ -216,9 +216,27 @@ int main(int argc, char* argv[])
     }
     outFile->Close();
 
-    // the particle count can be compared with the one printed by the generator
-    std::cout << "Events: " << nEvents << ", final-state particles: " << nParticles << "\n";
-    std::cout << "Statistics over all entries, including those outside the histogram range:\n";
+    // what was read and written
+    std::cout << "Read " << nEvents << " events with " << nParticles << " final-state particles from "
+              << argv[1] << "\n";
+    std::cout << "Wrote " << 4 * histograms.size() << " histograms to " << argv[2] << "\n\n";
+
+    std::cout << "Binning:\n";
+    std::printf("  hN_*    multiplicity per event     %3d bins in [%g, %g]\n", nBinsN, minN, maxN);
+    std::printf("  hPt_*   transverse momentum [GeV]  %3d bins in [%g, %g]\n", nBinsPt, minPt, maxPt);
+    std::printf("  hEta_*  pseudorapidity             %3d bins in [%g, %g]\n", nBinsEta, minEta, maxEta);
+    std::printf("  hPhi_*  azimuthal angle |phi|      %3d bins in [%g, pi]\n\n", nBinsPhi, minPhi);
+
+    std::cout << "Particles per category:\n";
+    std::printf("  %-6s %10s %10s\n", "", "in total", "per event");
+    for (std::size_t c = 0; c < categories.size(); ++c)
+    {
+        std::printf("  %-6s %10.0f %10.2f\n", categories[c].name.c_str(), histograms[c].pt->GetEntries(),
+                    histograms[c].n->GetMean());
+    }
+
+    std::cout << "\nStatistics of every histogram over all its entries; values outside the axis range\n"
+                 "are kept in the underflow and overflow bins:\n";
     std::printf("%-10s %9s %9s %9s %19s %19s\n", "histogram", "entries", "mean", "std dev",
                 "underflow", "overflow");
     for (const CategoryHistograms& h : histograms)

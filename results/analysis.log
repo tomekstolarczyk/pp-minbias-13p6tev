@@ -1,5 +1,25 @@
-Events: 100000, final-state particles: 19265955
-Statistics over all entries, including those outside the histogram range:
+Read 100000 events with 19265955 final-state particles from data/events.root
+Wrote 32 histograms to results/analysis.root
+
+Binning:
+  hN_*    multiplicity per event     400 bins in [0, 400]
+  hPt_*   transverse momentum [GeV]  100 bins in [0, 10]
+  hEta_*  pseudorapidity             100 bins in [-5, 5]
+  hPhi_*  azimuthal angle |phi|       64 bins in [0, pi]
+
+Particles per category:
+           in total  per event
+  all      19265955     192.66
+  ch        9206170      92.06
+  pip       3836448      38.36
+  pim       3770670      37.71
+  Kp         424435       4.24
+  Km         412334       4.12
+  p          382261       3.82
+  pbar       260133       2.60
+
+Statistics of every histogram over all its entries; values outside the axis range
+are kept in the underflow and overflow bins:
 histogram    entries      mean   std dev           underflow            overflow
 hN_all        100000  192.6595  159.9093        0 ( 0.000%)    12712 (12.712%)
 hPt_all     19265955    0.3963    0.4495        0 ( 0.000%)      526 ( 0.003%)
