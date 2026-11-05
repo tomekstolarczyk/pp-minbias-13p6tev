@@ -1,11 +1,5 @@
 // Compares the charged-particle density dN_ch/deta with the ALICE measurement in pp collisions at
 // sqrt(s) = 13.6 TeV (ALICE, arXiv:2602.10658). This is an extra, not part of the task.
-// It reads two event trees: the task run (Pythia default decays) and a run with the ALICE definition
-// of primary particles (config/minbias_alice_primaries.cmnd), and
-//   1. shows step by step how matching the ALICE definitions moves <dN_ch/deta> in |eta| < 0.5,
-//   2. draws (1/N_ev) dN_ch/deta for each step with the ALICE value,
-//   3. compares <dN_ch/deta> in ten multiplicity classes with the data and with the PYTHIA values
-//      computed by ALICE.
 // Usage: root -l -b -q 'macros/compare_alice.C("data/events.root", "data/events_alice_primaries.root", "plots/alice_comparison")'
 // The exit code is 0 when both files were read and the plots saved, 1 otherwise.
 
@@ -17,7 +11,6 @@
 #include <memory>
 #include <string>
 #include <system_error>
-#include <utility>
 #include <vector>
 
 #include "TCanvas.h"
@@ -26,7 +19,6 @@
 #include "TH1.h"
 #include "TLatex.h"
 #include "TLegend.h"
-#include "TLine.h"
 #include "TStyle.h"
 #include "TTree.h"
 #include "TTreeReader.h"
@@ -88,9 +80,15 @@ Mean meanOf(double sum, double sumOfSquares, double n)
     return {mean, std::sqrt(variance / n)};
 }
 
+// what the multiplicity classes need from one INEL>0 event
+struct InelGt0Event
+{
+    int nForward; // charged particles in the FT0 acceptance, used to sort the events
+    int nMid;     // charged particles in |eta| < 0.5
+};
+
 // what one run gives: event counts, charged particles in |eta| < 0.5 summed over all events and over
-// INEL>0 events, eta distributions of charged particles, and per INEL>0 event the forward and
-// mid-rapidity counts for the multiplicity classes
+// INEL>0 events, eta distributions of charged particles, and the INEL>0 events for the classes
 struct Run
 {
     long long nEvents = 0;
@@ -101,7 +99,7 @@ struct Run
     double sumMidInelGt0Squares = 0.0;
     std::unique_ptr<TH1D> etaAll;
     std::unique_ptr<TH1D> etaInelGt0;
-    std::vector<std::pair<int, int>> forwardAndMid;
+    std::vector<InelGt0Event> inelGt0Events;
 };
 
 std::unique_ptr<TH1D> makeEtaHistogram(const std::string& name)
@@ -173,7 +171,7 @@ bool readRun(const std::string& fileName, const std::string& tag, Run& run)
                 {
                     run.etaInelGt0->Fill(value);
                 }
-                run.forwardAndMid.emplace_back(nForward, nMid);
+                run.inelGt0Events.push_back({nForward, nMid});
             }
         }
         if (reader.GetEntryStatus() != TTreeReader::kEntryBeyondEnd)
@@ -189,31 +187,37 @@ bool readRun(const std::string& fileName, const std::string& tag, Run& run)
     return true;
 }
 
-// <dN_ch/deta> in |eta| < 0.5 per multiplicity class: INEL>0 events are sorted by the number of
-// charged particles in the FT0 acceptance, highest first, and split at the ALICE percentiles; events
-// with the same forward count keep their generation order, so the split between them is arbitrary
-std::vector<Mean> densityPerClass(std::vector<std::pair<int, int>> forwardAndMid)
+// sorts the INEL>0 events by the number of charged particles in the FT0 acceptance, highest first, so
+// that a percentile range is a range of indices; events with the same forward count keep their
+// generation order, so the split between them is arbitrary
+void sortByForwardActivity(std::vector<InelGt0Event>& events)
 {
-    std::stable_sort(forwardAndMid.begin(), forwardAndMid.end(),
-                     [](const auto& a, const auto& b) { return a.first > b.first; });
-    const double n = static_cast<double>(forwardAndMid.size());
-    std::vector<Mean> densities;
-    for (const MultiplicityClass& multiplicityClass : multiplicityClasses)
-    {
-        const auto first = static_cast<std::size_t>(std::llround(n * multiplicityClass.fromPercent / 100.0));
-        const auto last = static_cast<std::size_t>(std::llround(n * multiplicityClass.toPercent / 100.0));
-        double sum = 0.0;
-        double sumOfSquares = 0.0;
-        for (std::size_t i = first; i < last; ++i)
-        {
-            sum += forwardAndMid[i].second;
-            sumOfSquares += static_cast<double>(forwardAndMid[i].second) * forwardAndMid[i].second;
-        }
-        densities.push_back(meanOf(sum, sumOfSquares, static_cast<double>(last - first)));
-    }
-    return densities;
+    std::stable_sort(events.begin(), events.end(),
+                     [](const InelGt0Event& a, const InelGt0Event& b) { return a.nForward > b.nForward; });
 }
 
+// index of the sorted event at a percentile; a class is the index range [from, to)
+std::size_t percentileIndex(const std::vector<InelGt0Event>& events, double percent)
+{
+    return static_cast<std::size_t>(std::llround(events.size() * percent / 100.0));
+}
+
+// <dN_ch/deta> in |eta| < 0.5 of the sorted events between two percentiles
+Mean densityInRange(const std::vector<InelGt0Event>& events, double fromPercent, double toPercent)
+{
+    const std::size_t first = percentileIndex(events, fromPercent);
+    const std::size_t last = percentileIndex(events, toPercent);
+    double sum = 0.0;
+    double sumOfSquares = 0.0;
+    for (std::size_t i = first; i < last; ++i)
+    {
+        sum += events[i].nMid;
+        sumOfSquares += static_cast<double>(events[i].nMid) * events[i].nMid;
+    }
+    return meanOf(sum, sumOfSquares, static_cast<double>(last - first));
+}
+
+// text at a position given as a fraction of the canvas
 void drawLabel(double x, double y, const std::string& text)
 {
     TLatex latex;
@@ -229,16 +233,19 @@ void save(TCanvas& canvas, const std::string& baseName)
     canvas.SaveAs((baseName + ".pdf").c_str());
 }
 
-// (1/N_ev) dN_ch/deta for the three steps of the anatomy, with the ALICE value at mid-rapidity
+// Fig. 1 of the paper: dN_ch/deta (per event) for the three steps of the anatomy, with the ALICE value
 void drawDensity(const Run& base, const Run& primaries, const std::string& outDir)
 {
     TH1D& baseAll = *base.etaAll;
     TH1D& baseInelGt0 = *base.etaInelGt0;
     TH1D& primariesInelGt0 = *primaries.etaInelGt0;
 
-    baseAll.SetTitle("Charged-particle density;#eta;(1/N_{ev}) dN_{ch}/d#eta");
-    baseAll.SetMinimum(0.0);
-    baseAll.SetMaximum(10.0);
+    // dN_ch/deta means per event, as in the paper
+    baseAll.SetTitle("Charged-particle density;#eta;dN_{ch}/d#eta");
+    // the range of Fig. 1, where ALICE measures; the full eta range is in the task plots
+    baseAll.GetXaxis()->SetRangeUser(-1.5, 1.5);
+    baseAll.SetMinimum(5.0);
+    baseAll.SetMaximum(9.5);
     baseAll.SetStats(false);
     baseAll.GetYaxis()->SetTitleOffset(1.2);
     // the curve with the ALICE definitions stands out, the two intermediate steps are thinner
@@ -251,11 +258,10 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
     primariesInelGt0.SetLineColor(kRed + 1);
     primariesInelGt0.SetLineWidth(3);
 
-    // the ALICE value is an average over |eta| < 0.5: the horizontal bar shows that window,
-    // the vertical bar the total uncertainty
+    // the ALICE value is an average over |eta| < 0.5, drawn at eta = 0 with its total uncertainty
     TGraphErrors alice(1);
     alice.SetPoint(0, 0.0, aliceDensity);
-    alice.SetPointError(0, midEtaMax, aliceDensityError);
+    alice.SetPointError(0, 0.0, aliceDensityError);
     alice.SetMarkerStyle(kFullCircle);
     alice.SetMarkerSize(1.2);
     alice.SetLineWidth(2);
@@ -265,7 +271,7 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
     legend.SetFillStyle(0);
     legend.SetTextFont(42);
     legend.SetTextSize(textSize);
-    legend.AddEntry(&alice, "ALICE data, INEL>0, #left|#eta#right| < 0.5 (arXiv:2602.10658)", "pe");
+    legend.AddEntry(&alice, "ALICE data, INEL>0, mean over #left|#eta#right| < 0.5", "pe");
     legend.AddEntry(&primariesInelGt0, "PYTHIA, as ALICE: INEL>0, primary particles", "l");
     legend.AddEntry(&baseInelGt0, "PYTHIA, INEL>0, with weak-decay products", "l");
     legend.AddEntry(&baseAll, "PYTHIA, all inelastic, with weak-decay products", "l");
@@ -279,143 +285,7 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
     alice.Draw("P SAME");
     legend.Draw();
     drawLabel(0.17, 0.84, "PYTHIA 8 (Monash 2013), pp, #sqrt{s} = 13.6 TeV");
-    save(canvas, outDir + "/dndeta_alice");
-}
-
-// a model value per class, drawn as a horizontal bar across the class with its statistical error
-std::unique_ptr<TGraphErrors> makeBars(const TH1D& histogram)
-{
-    const int n = histogram.GetNbinsX();
-    auto bars = std::make_unique<TGraphErrors>(n);
-    for (int i = 0; i < n; ++i)
-    {
-        bars->SetPoint(i, histogram.GetBinCenter(i + 1), histogram.GetBinContent(i + 1));
-        bars->SetPointError(i, 0.5 * histogram.GetBinWidth(i + 1), histogram.GetBinError(i + 1));
-    }
-    bars->SetLineColor(kRed + 1);
-    bars->SetLineWidth(3);
-    bars->SetMarkerSize(0.0);
-    return bars;
-}
-
-// <dN_ch/deta> per multiplicity class: ALICE data as points, our PYTHIA as bars, the PYTHIA values
-// computed by ALICE as open squares on top of ours, and the ratios to the data below
-void drawClasses(const std::vector<Mean>& ours, const std::string& outDir)
-{
-    const int n = static_cast<int>(multiplicityClasses.size());
-    TH1D data("classData", "", n, 0.0, n);
-    TH1D ourPythia("classOurPythia", "", n, 0.0, n);
-    TH1D alicePythia("classAlicePythia", "", n, 0.0, n);
-    for (TH1D* histogram : {&data, &ourPythia, &alicePythia})
-    {
-        histogram->SetDirectory(nullptr);
-        histogram->SetStats(false);
-    }
-    for (int i = 0; i < n; ++i)
-    {
-        const MultiplicityClass& multiplicityClass = multiplicityClasses[i];
-        data.SetBinContent(i + 1, multiplicityClass.data);
-        data.SetBinError(i + 1, multiplicityClass.dataError);
-        ourPythia.SetBinContent(i + 1, ours[i].value);
-        ourPythia.SetBinError(i + 1, ours[i].error);
-        alicePythia.SetBinContent(i + 1, multiplicityClass.alicePythia);
-        for (TH1D* histogram : {&data, &ourPythia, &alicePythia})
-        {
-            histogram->GetXaxis()->SetBinLabel(i + 1, multiplicityClass.label.c_str());
-        }
-    }
-
-    // PYTHIA / data; the data uncertainty is drawn as a grey band around 1
-    std::unique_ptr<TH1D> ratio(static_cast<TH1D*>(ourPythia.Clone("ourPythiaRatio")));
-    std::unique_ptr<TH1D> aliceRatio(static_cast<TH1D*>(alicePythia.Clone("alicePythiaRatio")));
-    std::unique_ptr<TH1D> dataBand(static_cast<TH1D*>(data.Clone("dataBand")));
-    for (int i = 1; i <= n; ++i)
-    {
-        aliceRatio->SetBinContent(i, alicePythia.GetBinContent(i) / data.GetBinContent(i));
-        ratio->SetBinContent(i, ourPythia.GetBinContent(i) / data.GetBinContent(i));
-        ratio->SetBinError(i, ourPythia.GetBinError(i) / data.GetBinContent(i));
-        dataBand->SetBinContent(i, 1.0);
-        dataBand->SetBinError(i, data.GetBinError(i) / data.GetBinContent(i));
-    }
-    std::unique_ptr<TGraphErrors> pythiaBars = makeBars(ourPythia);
-    std::unique_ptr<TGraphErrors> ratioBars = makeBars(*ratio);
-    // the paper gives the ALICE PYTHIA values without errors, so they are drawn as markers only
-    for (TH1D* histogram : {&alicePythia, aliceRatio.get()})
-    {
-        histogram->SetMarkerStyle(kOpenSquare);
-        histogram->SetMarkerColor(kAzure + 2);
-        histogram->SetMarkerSize(1.4);
-    }
-
-    // data as points with vertical error bars only (option X0)
-    data.SetTitle("Charged-particle density per multiplicity class;;#LTdN_{ch}/d#eta#GT");
-    data.SetMarkerStyle(kFullCircle);
-    data.SetMarkerSize(1.3);
-    data.SetMarkerColor(kBlack);
-    data.SetLineColor(kBlack);
-    data.SetLineWidth(2);
-    data.SetMinimum(0.0);
-    data.SetMaximum(30.0);
-    data.GetXaxis()->SetLabelSize(0.0);
-    data.GetYaxis()->SetTitleOffset(1.2);
-
-    // text sizes are fractions of the pad height, so the small ratio pad needs larger ones
-    constexpr double ratioPadHeight = 0.3;
-    const double scale = (1.0 - ratioPadHeight) / ratioPadHeight;
-    dataBand->SetTitle(";FT0 multiplicity class (0-1% = most particles in the forward detector);PYTHIA / data");
-    dataBand->SetFillColor(kGray);
-    dataBand->SetLineColor(kGray);
-    dataBand->SetMarkerSize(0.0);
-    dataBand->SetMinimum(0.5);
-    dataBand->SetMaximum(1.5);
-    dataBand->GetXaxis()->SetLabelSize(textSize * scale);
-    dataBand->GetXaxis()->SetTitleSize(0.9 * textSize * scale);
-    dataBand->GetXaxis()->SetTitleOffset(1.1);
-    dataBand->GetYaxis()->SetLabelSize(textSize * scale);
-    dataBand->GetYaxis()->SetTitleSize(textSize * scale);
-    dataBand->GetYaxis()->SetTitleOffset(1.2 / scale);
-    dataBand->GetYaxis()->SetNdivisions(505);
-
-    TLine one(0.0, 1.0, n, 1.0);
-    one.SetLineStyle(kDashed);
-    one.SetLineColor(kGray + 2);
-    // the right half is empty because the densities fall with the class
-    TLegend legend(0.45, 0.49, 0.85, 0.67);
-    legend.SetBorderSize(0);
-    legend.SetFillStyle(0);
-    legend.SetTextFont(42);
-    legend.SetTextSize(textSize);
-    legend.AddEntry(&data, "ALICE data", "pe");
-    legend.AddEntry(pythiaBars.get(), "PYTHIA 8.318 Monash, this work", "l");
-    legend.AddEntry(&alicePythia, "PYTHIA 8.311 Monash, by ALICE", "p");
-
-    TCanvas canvas("c_classes", "", 800, 800);
-    canvas.Divide(1, 2);
-    TVirtualPad* plotPad = canvas.cd(1);
-    plotPad->SetPad(0.0, ratioPadHeight, 1.0, 1.0);
-    plotPad->SetBottomMargin(0.02);
-    plotPad->SetLeftMargin(0.13);
-    plotPad->SetTicks(1, 1);
-    data.Draw("E1 X0");
-    pythiaBars->Draw("Z");
-    alicePythia.Draw("P SAME");
-    data.Draw("E1 X0 SAME");
-    legend.Draw();
-    drawLabel(0.46, 0.84, "pp, #sqrt{s} = 13.6 TeV, INEL>0");
-    drawLabel(0.46, 0.78, "primary charged particles");
-    drawLabel(0.46, 0.72, "#left|#eta#right| < 0.5 (arXiv:2602.10658)");
-
-    TVirtualPad* ratioPad = canvas.cd(2);
-    ratioPad->SetPad(0.0, 0.0, 1.0, ratioPadHeight);
-    ratioPad->SetTopMargin(0.03);
-    ratioPad->SetBottomMargin(0.35);
-    ratioPad->SetLeftMargin(0.13);
-    ratioPad->SetTicks(1, 1);
-    dataBand->Draw("E2");
-    one.Draw();
-    ratioBars->Draw("Z");
-    aliceRatio->Draw("P SAME");
-    save(canvas, outDir + "/dndeta_classes_alice");
+    save(canvas, outDir + "/alice_fig1_dndeta");
 }
 
 int compare_alice(const char* baseFileName = "data/events.root",
@@ -460,20 +330,20 @@ int compare_alice(const char* baseFileName = "data/events.root",
     std::printf("  matched definitions / ALICE = %.3f, difference = %.1f sigma (ALICE uncertainty)\n\n",
                 primariesInelGt0.value / aliceDensity, (primariesInelGt0.value - aliceDensity) / aliceDensityError);
 
-    // 3. multiplicity classes
-    const std::vector<Mean> ours = densityPerClass(primaries.forwardAndMid);
+    // 3. multiplicity classes: Table 2 with our PYTHIA
+    sortByForwardActivity(primaries.inelGt0Events);
     std::printf("<dN_ch/deta> in |eta| < 0.5 per FT0 multiplicity class (INEL>0, ALICE primary particles):\n");
     std::printf("  %-8s %15s %14s %16s %12s\n", "class", "ALICE data", "ALICE PYTHIA", "our PYTHIA", "ours / data");
     for (std::size_t i = 0; i < multiplicityClasses.size(); ++i)
     {
         const MultiplicityClass& c = multiplicityClasses[i];
+        const Mean ours = densityInRange(primaries.inelGt0Events, c.fromPercent, c.toPercent);
         std::printf("  %-8s %8.2f +- %.2f %14.2f %9.2f +- %.2f %12.3f\n", c.label.c_str(), c.data, c.dataError,
-                    c.alicePythia, ours[i].value, ours[i].error, ours[i].value / c.data);
+                    c.alicePythia, ours.value, ours.error, ours.value / c.data);
     }
 
-    // 2. and 3. plots
+    // 2. plot
     gStyle->SetOptStat(0);
     drawDensity(base, primaries, outDir);
-    drawClasses(ours, outDir);
     return 0;
 }
