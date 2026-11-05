@@ -4,10 +4,12 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include "Pythia8/Pythia.h"
 #include "TFile.h"
+#include "TNamed.h"
 #include "TTree.h"
 
 int main(int argc, char* argv[])
@@ -101,6 +103,13 @@ int main(int argc, char* argv[])
     // kOverwrite replaces the copies of the tree header saved automatically while filling
     tree->Write("", TObject::kOverwrite);
     tree.reset();
+
+    // the changed settings and the Pythia version, in the .cmnd format, so the file records how it was
+    // produced and readFile() can repeat the run
+    std::ostringstream settings;
+    pythia.settings.writeFile(settings);
+    TNamed generatorSettings("generator_settings", settings.str().c_str());
+    outFile->WriteTObject(&generatorSettings);
     outFile->Close();
 
     pythia.stat();

@@ -1,5 +1,5 @@
 Read 100000 events with 19265955 final-state particles from data/events.root
-Wrote 32 histograms to results/analysis.root
+Wrote 32 histograms and the generator settings to results/analysis.root
 
 Binning:
   hN_*    multiplicity per event     400 bins in [0, 400]

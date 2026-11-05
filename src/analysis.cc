@@ -11,6 +11,7 @@
 #include "TFile.h"
 #include "TH1.h"
 #include "TMath.h"
+#include "TNamed.h"
 #include "TTree.h"
 #include "TTreeReader.h"
 #include "TTreeReaderArray.h"
@@ -138,6 +139,15 @@ int main(int argc, char* argv[])
         std::cerr << "No tree \"events\" in " << argv[1] << "\n";
         return 1;
     }
+    // the generator settings are copied to the output, so analysis.root records how it was produced;
+    // a copy, because the input file owns the original and deletes it when closed
+    const TNamed* settingsInFile = inFile->Get<TNamed>("generator_settings");
+    if (!settingsInFile)
+    {
+        std::cerr << "No generator_settings in " << argv[1] << "\n";
+        return 1;
+    }
+    TNamed generatorSettings(*settingsInFile);
 
     // create the output file before the long loop, so that a wrong path fails early
     std::unique_ptr<TFile> outFile(TFile::Open(argv[2], "RECREATE"));
@@ -214,12 +224,14 @@ int main(int argc, char* argv[])
         outFile->WriteTObject(h.eta.get());
         outFile->WriteTObject(h.phi.get());
     }
+    outFile->WriteTObject(&generatorSettings);
     outFile->Close();
 
     // what was read and written
     std::cout << "Read " << nEvents << " events with " << nParticles << " final-state particles from "
               << argv[1] << "\n";
-    std::cout << "Wrote " << 4 * histograms.size() << " histograms to " << argv[2] << "\n\n";
+    std::cout << "Wrote " << 4 * histograms.size() << " histograms and the generator settings to " << argv[2]
+              << "\n\n";
 
     std::cout << "Binning:\n";
     std::printf("  hN_*    multiplicity per event     %3d bins in [%g, %g]\n", nBinsN, minN, maxN);
