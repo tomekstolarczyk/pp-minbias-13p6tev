@@ -1,0 +1,2 @@
+# ROOT macros (.C) are C++, but GitHub's language detection counts the extension as C
+*.C linguist-language=C++
