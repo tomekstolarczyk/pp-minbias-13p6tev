@@ -1,6 +1,6 @@
 // Compares the charged-particle density dN_ch/deta with the ALICE measurement in pp collisions at
 // sqrt(s) = 13.6 TeV (ALICE, arXiv:2602.10658). This is an extra, not part of the task.
-// Usage: root -l -b -q 'macros/compare_alice.C("data/events.root", "data/events_alice_primaries.root", "plots/alice_comparison")'
+// Usage: root -l -b -q 'macros/compare_alice.C("data/events.root", "data/events_alice.root", "plots/alice_comparison")'
 // The exit code is 0 when both files were read and the plots saved, 1 otherwise.
 
 #include <algorithm>
@@ -234,11 +234,11 @@ void save(TCanvas& canvas, const std::string& baseName)
 }
 
 // Fig. 1 of the paper: dN_ch/deta (per event) for the three steps of the anatomy, with the ALICE value
-void drawDensity(const Run& base, const Run& primaries, const std::string& outDir)
+void drawDensity(const Run& base, const Run& comparison, const std::string& outDir)
 {
     TH1D& baseAll = *base.etaAll;
     TH1D& baseInelGt0 = *base.etaInelGt0;
-    TH1D& primariesInelGt0 = *primaries.etaInelGt0;
+    TH1D& comparisonInelGt0 = *comparison.etaInelGt0;
 
     // dN_ch/deta means per event, as in the paper
     baseAll.SetTitle("Charged-particle density;#eta;dN_{ch}/d#eta");
@@ -255,8 +255,8 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
     baseInelGt0.SetLineColor(kAzure + 2);
     baseInelGt0.SetLineStyle(kDashed);
     baseInelGt0.SetLineWidth(2);
-    primariesInelGt0.SetLineColor(kRed + 1);
-    primariesInelGt0.SetLineWidth(3);
+    comparisonInelGt0.SetLineColor(kRed + 1);
+    comparisonInelGt0.SetLineWidth(3);
 
     // the ALICE value is an average over |eta| < 0.5, drawn at eta = 0 with its total uncertainty
     TGraphErrors alice(1);
@@ -272,16 +272,16 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
     legend.SetTextFont(42);
     legend.SetTextSize(textSize);
     legend.AddEntry(&alice, "ALICE data, INEL>0, mean over #left|#eta#right| < 0.5", "pe");
-    legend.AddEntry(&primariesInelGt0, "PYTHIA, as ALICE: INEL>0, primary particles", "l");
-    legend.AddEntry(&baseInelGt0, "PYTHIA, INEL>0, with weak-decay products", "l");
-    legend.AddEntry(&baseAll, "PYTHIA, all inelastic, with weak-decay products", "l");
+    legend.AddEntry(&comparisonInelGt0, "PYTHIA, INEL>0, ALICE decay setting", "l");
+    legend.AddEntry(&baseInelGt0, "PYTHIA, INEL>0, default decays", "l");
+    legend.AddEntry(&baseAll, "PYTHIA, all inelastic, default decays", "l");
 
     TCanvas canvas("c_density", "", 800, 600);
     canvas.SetLeftMargin(0.13);
     canvas.SetTicks(1, 1);
     baseAll.Draw("HIST");
     baseInelGt0.Draw("HIST SAME");
-    primariesInelGt0.Draw("HIST SAME");
+    comparisonInelGt0.Draw("HIST SAME");
     alice.Draw("P SAME");
     legend.Draw();
     drawLabel(0.17, 0.84, "PYTHIA 8 (Monash 2013), pp, #sqrt{s} = 13.6 TeV");
@@ -289,12 +289,12 @@ void drawDensity(const Run& base, const Run& primaries, const std::string& outDi
 }
 
 int compare_alice(const char* baseFileName = "data/events.root",
-                  const char* primariesFileName = "data/events_alice_primaries.root",
+                  const char* comparisonFileName = "data/events_alice.root",
                   const char* outDir = "plots/alice_comparison")
 {
     Run base;
-    Run primaries;
-    if (!readRun(baseFileName, "base", base) || !readRun(primariesFileName, "primaries", primaries))
+    Run comparison;
+    if (!readRun(baseFileName, "base", base) || !readRun(comparisonFileName, "comparison", comparison))
     {
         return 1;
     }
@@ -309,41 +309,41 @@ int compare_alice(const char* baseFileName = "data/events.root",
     // 1. anatomy of the comparison
     const Mean baseInel = meanOf(base.sumMid, base.sumMidSquares, base.nEvents);
     const Mean baseInelGt0 = meanOf(base.sumMidInelGt0, base.sumMidInelGt0Squares, base.nInelGt0);
-    const Mean primariesInel = meanOf(primaries.sumMid, primaries.sumMidSquares, primaries.nEvents);
-    const Mean primariesInelGt0 =
-        meanOf(primaries.sumMidInelGt0, primaries.sumMidInelGt0Squares, primaries.nInelGt0);
+    const Mean comparisonInel = meanOf(comparison.sumMid, comparison.sumMidSquares, comparison.nEvents);
+    const Mean comparisonInelGt0 =
+        meanOf(comparison.sumMidInelGt0, comparison.sumMidInelGt0Squares, comparison.nInelGt0);
 
     std::printf("Comparison with ALICE, pp at 13.6 TeV (arXiv:2602.10658)\n\n");
-    std::printf("INEL>0 events: task run %lld of %lld (%.2f%%), primaries run %lld of %lld (%.2f%%)\n\n",
-                base.nInelGt0, base.nEvents, 100.0 * base.nInelGt0 / base.nEvents, primaries.nInelGt0,
-                primaries.nEvents, 100.0 * primaries.nInelGt0 / primaries.nEvents);
+    std::printf("INEL>0 events: task run %lld of %lld (%.2f%%), comparison run %lld of %lld (%.2f%%)\n\n",
+                base.nInelGt0, base.nEvents, 100.0 * base.nInelGt0 / base.nEvents, comparison.nInelGt0,
+                comparison.nEvents, 100.0 * comparison.nInelGt0 / comparison.nEvents);
     std::printf("<dN_ch/deta> in |eta| < 0.5, step by step towards the ALICE definitions:\n");
     std::printf("  %-52s %6.3f +- %.3f\n", "task run: INEL, default decays", baseInel.value, baseInel.error);
     std::printf("  %-52s %6.3f +- %.3f\n", "task run: INEL>0, default decays", baseInelGt0.value,
                 baseInelGt0.error);
-    std::printf("  %-52s %6.3f +- %.3f\n", "primaries run: INEL, ALICE primary particles", primariesInel.value,
-                primariesInel.error);
-    std::printf("  %-52s %6.3f +- %.3f\n", "primaries run: INEL>0, ALICE primary particles",
-                primariesInelGt0.value, primariesInelGt0.error);
-    std::printf("  %-52s %6.3f +- %.3f\n", "ALICE: INEL>0, primary particles", aliceDensity,
+    std::printf("  %-52s %6.3f +- %.3f\n", "comparison run: INEL, ALICE decay setting", comparisonInel.value,
+                comparisonInel.error);
+    std::printf("  %-52s %6.3f +- %.3f\n", "comparison run: INEL>0, ALICE decay setting",
+                comparisonInelGt0.value, comparisonInelGt0.error);
+    std::printf("  %-52s %6.3f +- %.3f\n", "ALICE measurement: INEL>0", aliceDensity,
                 aliceDensityError);
     std::printf("  matched definitions / ALICE = %.3f, difference = %.1f sigma (ALICE uncertainty)\n\n",
-                primariesInelGt0.value / aliceDensity, (primariesInelGt0.value - aliceDensity) / aliceDensityError);
+                comparisonInelGt0.value / aliceDensity, (comparisonInelGt0.value - aliceDensity) / aliceDensityError);
 
     // 3. multiplicity classes: Table 2 with our PYTHIA
-    sortByForwardActivity(primaries.inelGt0Events);
-    std::printf("<dN_ch/deta> in |eta| < 0.5 per FT0 multiplicity class (INEL>0, ALICE primary particles):\n");
+    sortByForwardActivity(comparison.inelGt0Events);
+    std::printf("<dN_ch/deta> in |eta| < 0.5 per FT0 multiplicity class (INEL>0, ALICE decay setting):\n");
     std::printf("  %-8s %15s %14s %16s %12s\n", "class", "ALICE data", "ALICE PYTHIA", "our PYTHIA", "ours / data");
     for (std::size_t i = 0; i < multiplicityClasses.size(); ++i)
     {
         const MultiplicityClass& c = multiplicityClasses[i];
-        const Mean ours = densityInRange(primaries.inelGt0Events, c.fromPercent, c.toPercent);
+        const Mean ours = densityInRange(comparison.inelGt0Events, c.fromPercent, c.toPercent);
         std::printf("  %-8s %8.2f +- %.2f %14.2f %9.2f +- %.2f %12.3f\n", c.label.c_str(), c.data, c.dataError,
                     c.alicePythia, ours.value, ours.error, ours.value / c.data);
     }
 
     // 2. plot
     gStyle->SetOptStat(0);
-    drawDensity(base, primaries, outDir);
+    drawDensity(base, comparison, outDir);
     return 0;
 }

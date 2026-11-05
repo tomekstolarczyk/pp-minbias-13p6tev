@@ -1,5 +1,6 @@
-! minbias_alice_primaries.cmnd
-! Same as minbias.cmnd, but with the ALICE definition of primary particles.
+! minbias_alice.cmnd
+! Same as minbias.cmnd, but with the decay setting ALICE uses in its own Pythia configuration
+! (AliceO2: Generators/share/egconfig/pythia8_inel.cfg).
 ! Used only for the comparison with ALICE data, not for the histograms required by the task.
 
 ! Settings used in the main program
@@ -18,7 +19,7 @@ SoftQCD:inelastic = on
 Tune:pp = 14
 
 ! Settings related to particle decays
-! Only particles with c*tau0 < 10 mm are decayed, as in the ALICE definition of primary particles.
+! Only particles with c*tau0 < 10 mm are decayed, as in the ALICE configuration.
 ParticleDecays:limitTau0 = on
 ParticleDecays:tau0Max = 10
 
