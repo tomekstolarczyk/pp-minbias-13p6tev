@@ -28,8 +28,6 @@ Author: Tomasz Stolarczyk
 6. [Repository layout](#6-repository-layout)
 7. [Where I learned from](#7-where-i-learned-from)
 
----
-
 ## 1. The pipeline in one minute
 
 ```
@@ -52,8 +50,6 @@ The plots are in [plots/](plots/). Every run also leaves its log in [results/](r
 - [compare_alice.log](results/compare_alice.log) and [generate_alice.log](results/generate_alice.log): the ALICE comparison
 
 [results/analysis.root](results/analysis.root) also stores the Pythia settings it was made with, as the text object `generator_settings`.
-
----
 
 ## 2. Quick start
 
@@ -93,8 +89,6 @@ scripts/run_all.sh
 ```
 
 It builds the programs, runs every step below, checks the result against the task and then runs the ALICE comparison. It takes about 4 minutes on the test machine (2 of them for the task itself) and overwrites `data/`, `results/` and `plots/`.
-
----
 
 ## 3. Step by step
 
@@ -182,8 +176,6 @@ and the settings travel with the histograms inside `analysis.root`. Running
 `scripts/run_all.sh` again, also in a fresh clone of this repository, gives bin-for-bin
 identical histograms.
 
----
-
 ## 4. How I read the task
 
 A few points of the task leave room for interpretation. Here is what I chose and why.
@@ -199,8 +191,6 @@ I found that their setup keeps these longer-lived particles undecayed, so the co
 
 **Nothing is thrown away.** I apply no kinematic cuts. Values outside a histogram range
 go to its underflow or overflow bin and count in the mean and standard deviation, so the statistics box shows the true values. The ranges from the task cut off a lot: 12.7% of the events have N<sub>all</sub> ≥ 400, and 27% of the charged particles have |η| > 5. [results/analysis.log](results/analysis.log) lists everything outside the ranges for each histogram.
-
----
 
 ## 5. Bonus: comparison with an ALICE paper
 
@@ -249,8 +239,6 @@ My PYTHIA reproduces the PYTHIA values computed by ALICE within 2% in every clas
 
 ALICE has not published identified-particle spectra at 13.6 TeV yet. I hope that will change soon, and I would be glad to help with that :)
 
----
-
 ## 6. Repository layout
 
 ```
@@ -263,8 +251,6 @@ results/      analysis.root and the log of every run
 plots/        histograms_single/, histograms_overlay/, alice_comparison/
 presentation/ slides with all plots (PDF)
 ```
-
----
 
 ## 7. Where I learned from
 
