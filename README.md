@@ -23,10 +23,11 @@ Author: Tomasz Stolarczyk
 1. [The pipeline in one minute](#1-the-pipeline-in-one-minute)
 2. [Quick start](#2-quick-start)
 3. [Step by step](#3-step-by-step)
-4. [How I read the task](#4-how-i-read-the-task)
-5. [Bonus: comparison with an ALICE paper](#5-bonus-comparison-with-an-alice-paper)
-6. [Repository layout](#6-repository-layout)
-7. [Where I learned from](#7-where-i-learned-from)
+4. [Reproducible by design](#4-reproducible-by-design)
+5. [How I read the task](#5-how-i-read-the-task)
+6. [Bonus: comparison with an ALICE paper](#6-bonus-comparison-with-an-alice-paper)
+7. [Repository layout](#7-repository-layout)
+8. [Where I learned from](#8-where-i-learned-from)
 
 ## 1. The pipeline in one minute
 
@@ -106,8 +107,8 @@ mkdir -p data results
 ./build/generate config/minbias.cmnd data/events.root | tee results/generate.log
 ```
 
-All settings, including the number of events and the random seed, live in
-[config/minbias.cmnd](config/minbias.cmnd). The output is a tree `events` with one entry per event and the branches `pdg`, `charge`, `pt` (GeV), `eta` and `phi` (rad), each holding
+All settings, including the number of events, the random seed and the model tune
+(Monash 2013, Pythia's default), live in [config/minbias.cmnd](config/minbias.cmnd). The output is a tree `events` with one entry per event and the branches `pdg`, `charge`, `pt` (GeV), `eta` and `phi` (rad), each holding
 one value per final-state particle. Intermediate particles never reach the file. The tree (about 470 MB) is not in the repository; the command above recreates it.
 
 ### Analysis
@@ -117,7 +118,8 @@ one value per final-state particle. Intermediate particles never reach the file.
 ```
 
 [results/analysis.root](results/analysis.root) holds the 32 histograms `hN_<cat>`,
-`hPt_<cat>`, `hEta_<cat>` and `hPhi_<cat>`:
+`hPt_<cat>`, `hEta_<cat>` and `hPhi_<cat>`. The multiplicity is filled once per event, also
+when it is zero; p<sub>T</sub>, η and φ once per particle.
 
 <table>
 <tr>
@@ -156,6 +158,18 @@ root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 
 The number of charged particles is always even, because the two protons bring a total charge of +2. Every odd bin of `hN_ch` is therefore empty. I draw the multiplicities as points, so this stays visible, instead of merging the bins in pairs and hiding it.
 
+### Results at a glance
+
+| Category | ⟨N⟩ per event | ⟨p<sub>T</sub>⟩ [GeV] | outside \|η\| < 5 |
+| --- | --- | --- | --- |
+| all | 192.66 | 0.40 | 25.7% |
+| charged | 92.06 | 0.51 | 26.8% |
+| π⁺ / π⁻ | 38.36 / 37.71 | 0.48 / 0.48 | 26.1% / 25.0% |
+| K⁺ / K⁻ | 4.24 / 4.12 | 0.68 / 0.68 | 27.7% / 26.0% |
+| p / p̄ | 3.82 / 2.60 | 0.69 / 0.78 | 50.3% / 29.0% |
+
+One number per histogram type: the mean of `hN` (particles per collision), the mean of `hPt`, and the share of particles that `hEta` keeps in its underflow and overflow. The φ distributions are flat, so their mean is π/2 for every category and is left out. The means include the values outside the histogram ranges; every number is in [results/analysis.log](results/analysis.log).
+
 ### Check
 
 ```bash
@@ -171,19 +185,34 @@ root -l -b -q tests/check_task.C
 | 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [0, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
 | 4) Macro | opens `analysis.root`, uses the required axis labels and legends, every plot exists as PNG and PDF |
 
-**Reproducibility.** The random seed is fixed in [config/minbias.cmnd](config/minbias.cmnd),
-and the settings travel with the histograms inside `analysis.root`. Running
-`scripts/run_all.sh` again, also in a fresh clone of this repository, gives bin-for-bin
-identical histograms.
+---
 
-## 4. How I read the task
+## 4. Reproducible by design
+
+The task asks for a reproducible production, so the whole repository is built around it:
+
+- **One command.** `scripts/run_all.sh` builds the programs and runs every step in order:
+  generation, analysis, plots, the check against the task and the ALICE comparison. It
+  stops at the first failing step.
+- **Fixed seed.** The random seed is set in [config/minbias.cmnd](config/minbias.cmnd),
+  together with every other setting, so the same Pythia version gives the same events.
+- **The settings travel with the results.** `analysis.root` stores the Pythia version and
+  every changed setting, in a form Pythia can read back.
+- **Every log is in the repository.** [results/](results/) keeps the output of every run,
+  so each number in this README and in the presentation can be traced back.
+- **Checked, not assumed.** Running `scripts/run_all.sh` again, also in a fresh clone of
+  this repository, gives bin-for-bin identical histograms.
+
+---
+
+## 5. How I read the task
 
 A few points of the task leave room for interpretation. Here is what I chose and why.
 
 **Minimum bias.** "Minimum bias (SoftQCD)" does not name a single Pythia switch. I use `SoftQCD:inelastic`: every inelastic collision (non-diffractive and diffractive), without elastic scattering, which produces no new particles. ALICE's own simulation software uses the same switch for minimum-bias pp collisions ([pythia8_inel.cfg](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg)). Switching is one line in the `.cmnd` file.
 
 **Decays and "final state".** I take the task literally: a particle is analysed if Pythia's `isFinal()` says so, with Pythia's default decays. This means that K⁰<sub>S</sub> and Λ decay and their daughters count as final-state particles. When comparing with ALICE
-I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#5-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
+I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#6-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
 
 **φ range.** Pythia gives φ in (−π, π], the task asks for [0, π]. I fill |φ|: the collisions have no preferred direction around the beam, so |φ| has the same distribution as φ and every particle lands inside the requested range.
 
@@ -192,7 +221,7 @@ I found that their setup keeps these longer-lived particles undecayed, so the co
 **Nothing is thrown away.** I apply no kinematic cuts. Values outside a histogram range
 go to its underflow or overflow bin and count in the mean and standard deviation, so the statistics box shows the true values. The ranges from the task cut off a lot: 12.7% of the events have N<sub>all</sub> ≥ 400, and 27% of the charged particles have |η| > 5. [results/analysis.log](results/analysis.log) lists everything outside the ranges for each histogram.
 
-## 5. Bonus: comparison with an ALICE paper
+## 6. Bonus: comparison with an ALICE paper
 
 A simulation is a model, and a model is only as good as its agreement with nature. So once the task was done, I wanted to see how my collisions compare with real ones, measured by ALICE at the same energy.
 
@@ -203,7 +232,10 @@ A simulation is a model, and a model is only as good as its agreement with natur
 - *Time resolution of the ALICE Time-Of-Flight detector with the first Run 3 pp collisions at √s = 13.6 TeV* ([arXiv:2511.10311](https://arxiv.org/abs/2511.10311))
 - *Inclusive and multiplicity-dependent pseudorapidity densities of charged particles in pp collisions at √s = 13.6 TeV* ([arXiv:2602.10658](https://arxiv.org/abs/2602.10658))
 
-Only the last one measures something I also histogram for the task: the charged-particle density dN<sub>ch</sub>/dη, the number of charged particles per collision and per unit of η. So that is the paper I compare with.
+Only the last one is about the same particles I histogram for the task: it measures the
+η distribution of charged particles per collision and per unit of η, the charged-particle
+density dN<sub>ch</sub>/dη. That is my `hEta_ch`, divided by the number of events and the
+bin width. So that is the paper I compare with.
 
 **Counting the way ALICE counts.** A fair comparison needs the same definitions, so I tuned a second run of the model to match theirs:
 
@@ -213,33 +245,38 @@ I apply the same selection to my events.
 
 **One definition at a time.** The plot below is my version of Fig. 1 of the paper. I switched the definitions on one by one: the grey curve is the task run, the blue one keeps only INEL>0 events, and the red one also uses the ALICE decay setting. Averaged over |η| < 0.5 they give 6.68, 7.71 and 7.00, against 7.10 ± 0.18 measured by ALICE ([results/compare_alice.log](results/compare_alice.log)). The data as a function of η are published only as a figure, so the measurement appears as its average over |η| < 0.5.
 
-<img src="plots/alice_comparison/alice_fig1_dndeta.png" width="600">
+<p align="center">
+  <img src="plots/alice_comparison/alice_fig1_dndeta.png" width="600">
+</p>
 
-With matched definitions PYTHIA agrees with the measurement within its uncertainty (ratio 0.987). The grey curve is only 5% below the red one, but only because the two corrections (+16% and −9%) nearly cancel: a comparison without matching the definitions would have looked almost right for the wrong reasons.
+With matched definitions PYTHIA agrees with the measurement within its uncertainty (ratio 0.987).
 
 **Multiplicity classes.** ALICE also sorts the collisions by how many particles hit its forward detector FT0 and measures the density in each class (Table 2 of the paper). I did the same with my comparison run, counting the charged particles in the FT0 acceptance (3.5 < η < 4.9 and −3.3 < η < −2.1):
 
-| MB>0 percentile (%) | INEL>0 percentile (%) | Data | PYTHIA 8.311 Monash (ALICE) | PYTHIA 8.318 Monash (this work) |
+| class (%) | data | PYTHIA (ALICE) | PYTHIA (ours) | ours/ data |
 | --- | --- | --- | --- | --- |
-| 0–1 | 0–0.96 | 21.78 ± 0.38 | 25.50 | 25.96 ± 0.28 |
-| 1–5 | 0.96–4.80 | 18.48 ± 0.25 | 20.71 | 20.91 ± 0.12 |
-| 5–10 | 4.80–9.60 | 15.76 ± 0.22 | 17.19 | 17.44 ± 0.10 |
-| 10–15 | 9.60–14.42 | 13.89 ± 0.19 | 14.71 | 14.66 ± 0.10 |
-| 15–20 | 14.42–19.25 | 12.50 ± 0.17 | 12.62 | 12.58 ± 0.09 |
-| 20–30 | 19.25–28.92 | 10.86 ± 0.15 | 10.02 | 10.10 ± 0.06 |
-| 30–40 | 28.92–38.62 | 9.09 ± 0.13 | 7.51 | 7.60 ± 0.05 |
-| 40–50 | 38.62–48.38 | 7.63 ± 0.11 | 5.60 | 5.64 ± 0.04 |
-| 50–70 | 48.38–68.09 | 5.87 ± 0.09 | 3.72 | 3.76 ± 0.02 |
-| 70–100 | 68.09–100 | 3.69 ± 0.06 | 2.47 | 2.49 ± 0.01 |
-| **0–100** | **0–100** | **7.10 ± 0.18** | **7.11** | **7.00 ± 0.02** |
+| 0–1 | 21.78 ± 0.38 | 25.50 | 25.96 | 1.19 |
+| 1–5 | 18.48 ± 0.25 | 20.71 | 20.91 | 1.13 |
+| 5–10 | 15.76 ± 0.22 | 17.19 | 17.44 | 1.11 |
+| 10–15 | 13.89 ± 0.19 | 14.71 | 14.66 | 1.06 |
+| 15–20 | 12.50 ± 0.17 | 12.62 | 12.58 | 1.01 |
+| 20–30 | 10.86 ± 0.15 | 10.02 | 10.10 | 0.93 |
+| 30–40 | 9.09 ± 0.13 | 7.51 | 7.60 | 0.84 |
+| 40–50 | 7.63 ± 0.11 | 5.60 | 5.64 | 0.74 |
+| 50–70 | 5.87 ± 0.09 | 3.72 | 3.76 | 0.64 |
+| 70–100 | 3.69 ± 0.06 | 2.47 | 2.49 | 0.68 |
+| **0–100** | **7.10 ± 0.18** | **7.11** | **7.00** | **0.99** |
 
-⟨dN<sub>ch</sub>/dη⟩ in |η| < 0.5, INEL>0. The first four columns are Table 2 of the paper, the last one is this work; I split my events at the INEL>0 percentiles.
+⟨dN<sub>ch</sub>/dη⟩ in |η| < 0.5, INEL>0. The classes, the data and PYTHIA (ALICE, version
+8.311) are from Table 2 of the paper; PYTHIA (mine, version 8.318) is from
+[results/compare_alice.log](results/compare_alice.log), where my events are split at the
+INEL>0 percentiles that the same table lists for each class.
 
 My PYTHIA reproduces the PYTHIA values computed by ALICE within 2% in every class. And the model, which gets the average right, misses the extremes: it puts too many particles into the busiest collisions and too few into the quietest ones, as the paper also concludes.
 
 ALICE has not published identified-particle spectra at 13.6 TeV yet. I hope that will change soon, and I would be glad to help with that :)
 
-## 6. Repository layout
+## 7. Repository layout
 
 ```
 config/       Pythia settings: the task run and the ALICE comparison run
@@ -249,10 +286,10 @@ tests/        check_task.C
 scripts/      run_all.sh
 results/      analysis.root and the log of every run
 plots/        histograms_single/, histograms_overlay/, alice_comparison/
-presentation/ slides with all plots (PDF)
+presentation/ slides.pdf with all plots, built from slides.tex (pdflatex, twice)
 ```
 
-## 7. Where I learned from
+## 8. Where I learned from
 
 Pythia
 - [Pythia 8.3 worksheet](https://pythia8.web.cern.ch/materials/pdf/worksheet8312.pdf): my first steps with Pythia

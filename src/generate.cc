@@ -14,14 +14,12 @@
 
 int main(int argc, char* argv[])
 {
-    // check that a settings file and an output file were given
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <settings.cmnd> <output.root>\n";
         return 1;
     }
 
-    // create the generator object and read the settings file
     Pythia8::Pythia pythia;
     if (!pythia.readFile(argv[1]))
     {
@@ -34,7 +32,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // create the output file given on the command line and an empty tree "events" inside it
     std::unique_ptr<TFile> outFile(TFile::Open(argv[2], "RECREATE"));
     if (!outFile)
     {
@@ -55,7 +52,6 @@ int main(int argc, char* argv[])
     tree->Branch("eta", &eta);
     tree->Branch("phi", &phi);
 
-    // generate until the requested number of good events is stored
     const int nEvents = pythia.mode("Main:numberOfEvents");
     const int nAbortedMax = pythia.mode("Main:timesAllowErrors");
     int nAccepted = 0;
@@ -104,8 +100,6 @@ int main(int argc, char* argv[])
     tree->Write("", TObject::kOverwrite);
     tree.reset();
 
-    // the changed settings and the Pythia version, in the .cmnd format, so the file records how it was
-    // produced and readFile() can repeat the run
     std::ostringstream settings;
     pythia.settings.writeFile(settings);
     TNamed generatorSettings("generator_settings", settings.str().c_str());

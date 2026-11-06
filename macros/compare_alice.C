@@ -1,7 +1,6 @@
 // Compares the charged-particle density dN_ch/deta with the ALICE measurement in pp collisions at
 // sqrt(s) = 13.6 TeV (ALICE, arXiv:2602.10658). This is an extra, not part of the task.
 // Usage: root -l -b -q 'macros/compare_alice.C("data/events.root", "data/events_alice.root", "plots/alice_comparison")'
-// The exit code is 0 when both files were read and the plots saved, 1 otherwise.
 
 #include <algorithm>
 #include <cmath>
@@ -25,22 +24,17 @@
 #include "TTreeReaderArray.h"
 
 // ALICE definitions (arXiv:2602.10658)
-// INEL>0: at least one charged particle in |eta| < 1
 constexpr double inelGt0EtaMax = 1.0;
-// the density is averaged over |eta| < 0.5, a window of width 1, so it equals the mean count there
+// a window of width 1, so the density equals the mean count of particles in it
 constexpr double midEtaMax = 0.5;
-// multiplicity classes use the forward detector FT0: FT0A 3.5 < eta < 4.9, FT0C -3.3 < eta < -2.1
 constexpr double ft0aMin = 3.5;
 constexpr double ft0aMax = 4.9;
 constexpr double ft0cMin = -3.3;
 constexpr double ft0cMax = -2.1;
-
-// measured <dN_ch/deta> in |eta| < 0.5 for INEL>0 events, all uncertainties combined
 constexpr double aliceDensity = 7.10;
 constexpr double aliceDensityError = 0.18;
 
-// Table 2 of the paper: multiplicity classes as INEL>0 percentiles (highest multiplicity first),
-// measured <dN_ch/deta> and the PYTHIA 8.311 Monash value computed by ALICE
+// Table 2 of the paper
 struct MultiplicityClass
 {
     std::string label; // percentile range used by ALICE
@@ -59,14 +53,11 @@ const std::vector<MultiplicityClass> multiplicityClasses = {
     {"50-70%", 48.38, 68.09, 5.87, 0.09, 3.72},   {"70-100%", 68.09, 100.0, 3.69, 0.06, 2.47},
 };
 
-// eta binning of the density plot, as in the task
 constexpr int nBinsEta = 100;
 constexpr double minEta = -5.0;
 constexpr double maxEta = 5.0;
-
 constexpr double textSize = 0.035;
 
-// mean of a count and the statistical error of that mean
 struct Mean
 {
     double value;
@@ -80,15 +71,12 @@ Mean meanOf(double sum, double sumOfSquares, double n)
     return {mean, std::sqrt(variance / n)};
 }
 
-// what the multiplicity classes need from one INEL>0 event
 struct InelGt0Event
 {
-    int nForward; // charged particles in the FT0 acceptance, used to sort the events
-    int nMid;     // charged particles in |eta| < 0.5
+    int nForward;
+    int nMid;
 };
 
-// what one run gives: event counts, charged particles in |eta| < 0.5 summed over all events and over
-// INEL>0 events, eta distributions of charged particles, and the INEL>0 events for the classes
 struct Run
 {
     long long nEvents = 0;
@@ -181,28 +169,25 @@ bool readRun(const std::string& fileName, const std::string& tag, Run& run)
         }
     }
 
-    // particles per event and per unit of eta; Sumw2 scales the bin errors with the contents
+    // particles per event and per unit of eta
     run.etaAll->Scale(1.0 / (run.nEvents * run.etaAll->GetBinWidth(1)));
     run.etaInelGt0->Scale(1.0 / (run.nInelGt0 * run.etaInelGt0->GetBinWidth(1)));
     return true;
 }
 
-// sorts the INEL>0 events by the number of charged particles in the FT0 acceptance, highest first, so
-// that a percentile range is a range of indices; events with the same forward count keep their
-// generation order, so the split between them is arbitrary
+// sorts the INEL>0 events by the number of charged particles in the FT0 acceptance, highest first;
+// events with the same count keep their generation order, so the split between them is arbitrary
 void sortByForwardActivity(std::vector<InelGt0Event>& events)
 {
     std::stable_sort(events.begin(), events.end(),
                      [](const InelGt0Event& a, const InelGt0Event& b) { return a.nForward > b.nForward; });
 }
 
-// index of the sorted event at a percentile; a class is the index range [from, to)
 std::size_t percentileIndex(const std::vector<InelGt0Event>& events, double percent)
 {
     return static_cast<std::size_t>(std::llround(events.size() * percent / 100.0));
 }
 
-// <dN_ch/deta> in |eta| < 0.5 of the sorted events between two percentiles
 Mean densityInRange(const std::vector<InelGt0Event>& events, double fromPercent, double toPercent)
 {
     const std::size_t first = percentileIndex(events, fromPercent);
@@ -217,7 +202,6 @@ Mean densityInRange(const std::vector<InelGt0Event>& events, double fromPercent,
     return meanOf(sum, sumOfSquares, static_cast<double>(last - first));
 }
 
-// text at a position given as a fraction of the canvas
 void drawLabel(double x, double y, const std::string& text)
 {
     TLatex latex;
@@ -233,22 +217,19 @@ void save(TCanvas& canvas, const std::string& baseName)
     canvas.SaveAs((baseName + ".pdf").c_str());
 }
 
-// Fig. 1 of the paper: dN_ch/deta (per event) for the three steps of the anatomy, with the ALICE value
+// Fig. 1 of the paper: dN_ch/deta (per event)
 void drawDensity(const Run& base, const Run& comparison, const std::string& outDir)
 {
     TH1D& baseAll = *base.etaAll;
     TH1D& baseInelGt0 = *base.etaInelGt0;
     TH1D& comparisonInelGt0 = *comparison.etaInelGt0;
 
-    // dN_ch/deta means per event, as in the paper
     baseAll.SetTitle("Charged-particle density;#eta;dN_{ch}/d#eta");
-    // the range of Fig. 1, where ALICE measures; the full eta range is in the task plots
     baseAll.GetXaxis()->SetRangeUser(-1.5, 1.5);
     baseAll.SetMinimum(5.0);
     baseAll.SetMaximum(9.5);
     baseAll.SetStats(false);
     baseAll.GetYaxis()->SetTitleOffset(1.2);
-    // the curve with the ALICE definitions stands out, the two intermediate steps are thinner
     baseAll.SetLineColor(kGray + 1);
     baseAll.SetLineStyle(kDotted);
     baseAll.SetLineWidth(2);
@@ -258,7 +239,6 @@ void drawDensity(const Run& base, const Run& comparison, const std::string& outD
     comparisonInelGt0.SetLineColor(kRed + 1);
     comparisonInelGt0.SetLineWidth(3);
 
-    // the ALICE value is an average over |eta| < 0.5, drawn at eta = 0 with its total uncertainty
     TGraphErrors alice(1);
     alice.SetPoint(0, 0.0, aliceDensity);
     alice.SetPointError(0, 0.0, aliceDensityError);
@@ -306,7 +286,7 @@ int compare_alice(const char* baseFileName = "data/events.root",
         return 1;
     }
 
-    // 1. anatomy of the comparison
+    // anatomy of the comparison
     const Mean baseInel = meanOf(base.sumMid, base.sumMidSquares, base.nEvents);
     const Mean baseInelGt0 = meanOf(base.sumMidInelGt0, base.sumMidInelGt0Squares, base.nInelGt0);
     const Mean comparisonInel = meanOf(comparison.sumMid, comparison.sumMidSquares, comparison.nEvents);
@@ -330,7 +310,7 @@ int compare_alice(const char* baseFileName = "data/events.root",
     std::printf("  matched definitions / ALICE = %.3f, difference = %.1f sigma (ALICE uncertainty)\n\n",
                 comparisonInelGt0.value / aliceDensity, (comparisonInelGt0.value - aliceDensity) / aliceDensityError);
 
-    // 3. multiplicity classes: Table 2 with our PYTHIA
+    // multiplicity classes: Table 2 with our PYTHIA
     sortByForwardActivity(comparison.inelGt0Events);
     std::printf("<dN_ch/deta> in |eta| < 0.5 per FT0 multiplicity class (INEL>0, ALICE decay setting):\n");
     std::printf("  %-8s %15s %14s %16s %12s\n", "class", "ALICE data", "ALICE PYTHIA", "our PYTHIA", "ours / data");
@@ -342,7 +322,7 @@ int compare_alice(const char* baseFileName = "data/events.root",
                     c.alicePythia, ours.value, ours.error, ours.value / c.data);
     }
 
-    // 2. plot
+    // plot
     gStyle->SetOptStat(0);
     drawDensity(base, comparison, outDir);
     return 0;

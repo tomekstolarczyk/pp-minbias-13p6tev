@@ -1,9 +1,5 @@
-// Draws the histograms from analysis.root and saves every plot as PNG and PDF:
-// each histogram on its own canvas (32 plots, in <outDir>/histograms_single) and, for every variable,
-// the categories of one group overlaid with a legend (16 plots, in <outDir>/histograms_overlay),
-// plus the shapes of the pT and eta distributions of pions, kaons and protons (2 plots, same directory).
+// Draws the histograms from analysis.root and saves every plot as PNG and PDF
 // Usage: root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
-// The exit code is 0 when every plot was saved and 1 otherwise.
 
 #include <algorithm>
 #include <cmath>
@@ -23,49 +19,42 @@
 #include "TLine.h"
 #include "TStyle.h"
 
-// one of the four histogrammed quantities and how to draw it
 struct Variable
 {
-    std::string prefix;  // histogram name prefix, e.g. hPt
-    std::string fileTag; // used in the file names of the overlay plots, e.g. pt
+    std::string prefix;
+    std::string fileTag;
     std::string title;
     std::string xTitle;
     std::string yTitle;
-    bool logY;   // logarithmic y axis, for counts spanning several orders of magnitude
-    bool points; // markers with error bars instead of a line
-    bool ratio;  // overlays get a panel with the ratio of the two categories
+    bool logY;
+    bool points;
+    bool ratio;
 };
 
-// one category drawn as a curve
 struct Curve
 {
-    std::string category; // histogram name suffix, e.g. pip
-    std::string legend;   // text in the legend of an overlay plot
-    std::string title;    // used in the title of the single plot
+    std::string category;
+    std::string legend;
+    std::string title;
     Color_t color;
     Style_t lineStyle;
     Style_t markerStyle;
 };
 
-// two categories compared on one overlay plot
 struct Group
 {
     std::string title;
-    std::string tag; // used in the file names, e.g. pions
+    std::string tag;
     std::vector<Curve> curves;
-    std::string ratioTitle; // second category divided by the first, e.g. #bar{p}/p
+    std::string ratioTitle;
     double ratioMin;
     double ratioMax;
-    bool subset; // the second category is part of the first (charged of all)
+    bool subset;
 };
 
-// text size of the labels and legends
 constexpr double textSize = 0.035;
-
-// fraction of the overlay canvas taken by the ratio panel
 constexpr double ratioPadHeight = 0.3;
 
-// reads one histogram from the file and sets its colour, line and marker; the file owns it
 TH1D* getStyledHistogram(TFile& file, const Variable& variable, const Curve& curve)
 {
     const std::string name = variable.prefix + "_" + curve.category;
@@ -85,13 +74,12 @@ TH1D* getStyledHistogram(TFile& file, const Variable& variable, const Curve& cur
     return histogram;
 }
 
-// content of the highest bin; GetMaximum() would return a value set earlier with SetMaximum()
+// GetMaximum() would return a value set earlier with SetMaximum()
 double highestBin(const TH1D& histogram)
 {
     return histogram.GetBinContent(histogram.GetMaximumBin());
 }
 
-// the first histogram drawn on a canvas sets the frame: title, axis titles and y range
 void setFrame(TH1D& frame, const Variable& variable, const std::string& title, double maximum)
 {
     frame.SetTitle((title + ";" + variable.xTitle + ";" + variable.yTitle).c_str());
@@ -135,7 +123,6 @@ void save(TCanvas& canvas, const std::string& baseName)
     canvas.SaveAs((baseName + ".pdf").c_str());
 }
 
-// one histogram on its own canvas, with a statistics box
 bool drawSingle(TFile& file, const Variable& variable, const Curve& curve, const std::string& nEvents,
                 const std::string& outDir)
 {
@@ -156,13 +143,12 @@ bool drawSingle(TFile& file, const Variable& variable, const Curve& curve, const
     return true;
 }
 
-// the ratio of the second category to the first, drawn in a panel below the overlay
 std::unique_ptr<TH1D> makeRatio(const TH1D& first, const TH1D& second, const Variable& variable,
                                 const Group& group)
 {
     std::unique_ptr<TH1D> ratio(static_cast<TH1D*>(second.Clone()));
     ratio->SetDirectory(nullptr);
-    // the errors come from Sumw2; for a subset they are binomial, otherwise the counts are independent
+    // binomial errors when one category is part of the other (charged of all)
     ratio->Divide(&second, &first, 1.0, 1.0, group.subset ? "B" : "");
     ratio->SetTitle(("; " + variable.xTitle + ";" + group.ratioTitle).c_str());
     ratio->SetMinimum(group.ratioMin);
@@ -173,7 +159,6 @@ std::unique_ptr<TH1D> makeRatio(const TH1D& first, const TH1D& second, const Var
     ratio->SetMarkerStyle(kFullCircle);
     ratio->SetMarkerSize(0.5);
 
-    // text sizes are fractions of the pad height, so the small panel needs larger ones
     const double scale = (1.0 - ratioPadHeight) / ratioPadHeight;
     TAxis* x = ratio->GetXaxis();
     TAxis* y = ratio->GetYaxis();
@@ -186,7 +171,6 @@ std::unique_ptr<TH1D> makeRatio(const TH1D& first, const TH1D& second, const Var
     return ratio;
 }
 
-// two categories on one canvas, told apart by the legend
 bool drawOverlay(TFile& file, const Variable& variable, const Group& group, const std::string& nEvents,
                  const std::string& outDir)
 {
@@ -259,7 +243,6 @@ bool drawOverlay(TFile& file, const Variable& variable, const Group& group, cons
     const std::string option = variable.points ? "P" : "HIST";
     for (std::size_t i = 0; i < histograms.size(); ++i)
     {
-        // SAME draws into the frame of the first histogram
         histograms[i]->Draw(i == 0 ? option.c_str() : (option + " SAME").c_str());
         legend.AddEntry(histograms[i].get(), group.curves[i].legend.c_str(), variable.points ? "p" : "l");
     }
@@ -269,14 +252,12 @@ bool drawOverlay(TFile& file, const Variable& variable, const Group& group, cons
     return true;
 }
 
-// pions, kaons and protons (both charges together) normalised to unit area, so that only the shapes
-// of the distributions are compared, not the numbers of particles
 bool drawShapes(TFile& file, const Variable& variable, const std::string& yTitle, bool showMean,
                 const std::string& nEvents, const std::string& outDir)
 {
     struct Species
     {
-        std::string positive; // histogram name suffixes of the two charges
+        std::string positive;
         std::string negative;
         std::string legend;
         Color_t color;
@@ -304,10 +285,9 @@ bool drawShapes(TFile& file, const Variable& variable, const std::string& yTitle
         std::unique_ptr<TH1D> histogram(static_cast<TH1D*>(positive->Clone()));
         histogram->SetDirectory(nullptr);
         histogram->Add(negative);
-        // the mean is taken before scaling; it includes the overflow (see analysis.cc)
         legends.push_back(showMean ? s.legend + Form(", #LTp_{T}#GT = %.2f GeV", histogram->GetMean())
                                    : s.legend);
-        // divide by the number of particles in the range and by the bin width, so the area is 1
+        // divide by the number of particles and by the bin width, so the area is 1
         histogram->Scale(1.0 / histogram->Integral(), "width");
         histogram->SetStats(false);
         histogram->SetLineColor(s.color);
@@ -320,7 +300,6 @@ bool drawShapes(TFile& file, const Variable& variable, const std::string& yTitle
     TH1D& frame = *histograms.front();
     frame.SetTitle((variable.title + ", shapes (unit area);" + variable.xTitle + ";" + yTitle).c_str());
     frame.GetYaxis()->SetTitleOffset(1.4);
-    // a log axis shows six orders of magnitude below the peak, a linear one starts at 0
     frame.SetMinimum(variable.logY ? maximum * 1e-6 : 0.0);
     frame.SetMaximum(variable.logY ? maximum * 50.0 : maximum * 1.5);
 
@@ -351,7 +330,6 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         return 1;
     }
 
-    // single plots and overlays go to separate directories
     const std::string singleDir = std::string(outDir) + "/histograms_single";
     const std::string overlayDir = std::string(outDir) + "/histograms_overlay";
     for (const std::string& dir : {singleDir, overlayDir})
@@ -374,7 +352,6 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
     gStyle->SetErrorX(0.0);
     TGaxis::SetMaxDigits(3);
 
-    // every multiplicity histogram has exactly one entry per event
     const TH1D* nCharged = file->Get<TH1D>("hN_ch");
     if (!nCharged)
     {
@@ -390,8 +367,6 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         {"hPhi", "phi", "Azimuthal angle", "#phi [rad]", "Particles / 0.049 rad", false, false, true},
     };
 
-    // particle and antiparticle are compared on their own canvas, so the scale fits both;
-    // red with full markers means positive charge, blue with open markers negative charge
     const Color_t positive = kRed + 1;
     const Color_t negative = kAzure + 2;
     const std::vector<Group> groups = {
@@ -439,8 +414,6 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         }
     }
 
-    // shapes only for pT and eta: phi is flat by symmetry, and multiplicities of different
-    // particles are not comparable in shape
     const Variable& pt = variables[1];
     const Variable& eta = variables[2];
     if (!drawShapes(*file, pt, "(1/N) dN/dp_{T} [GeV^{-1}]", true, nEvents, overlayDir) ||

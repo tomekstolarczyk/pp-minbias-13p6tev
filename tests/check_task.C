@@ -1,6 +1,5 @@
 // Checks the outputs of scripts/run_all.sh against the task, section by section.
 // Usage, from the repository root after the pipeline: root -l -b -q tests/check_task.C
-// (the event and histogram files can be given as arguments, e.g. to check another run)
 // The exit code is 0 when every check passes and 1 otherwise.
 
 #include <filesystem>
@@ -25,13 +24,11 @@ const std::string macroFileName = "macros/draw_plots.C";
 const std::string plotsDir = "plots";
 const std::string compileCommandsName = "build/compile_commands.json";
 
-// "about 100 000 events"
 constexpr long long requiredEvents = 100000;
 
 // two protons collide, so the final state of every event has total charge +2
 constexpr int beamCharge = 2;
 
-// "N: 0-400 (400 bins), pT: 0-10 GeV (100 bins), eta: -5 to 5 (100 bins), phi: 0-pi (64 bins)"
 struct Binning
 {
     std::string prefix;
@@ -48,8 +45,6 @@ const std::vector<Binning> binnings = {
     {"hPhi", "phi: 0-pi, 64 bins", 64, 0.0, TMath::Pi()},
 };
 
-// "all charged: charge != 0" and "PDG mapping: pions +-211, K +-321, p +-2212";
-// "all" holds every final-state particle
 struct Category
 {
     std::string name;
@@ -67,17 +62,14 @@ const std::vector<Category> categories = {
     {"pbar", [](int pdg, int) { return pdg == -2212; }},
 };
 
-// "axis labels (p_{T} [GeV], \eta, \phi [rad], Multiplicity N)", as ROOT writes them
 const std::vector<std::string> axisLabels = {"p_{T} [GeV]", "#eta", "#phi [rad]", "Multiplicity N"};
 
-// prints the result of one requirement and returns it
 bool report(bool passed, const std::string& requirement)
 {
     std::cout << "check_task:   " << (passed ? "ok    " : "FAILED") << "  " << requirement << "\n";
     return passed;
 }
 
-// whole content of a text file, empty if it cannot be read
 std::string readText(const std::string& fileName)
 {
     std::ifstream file(fileName);
@@ -91,7 +83,6 @@ bool contains(const std::string& text, const std::string& part)
     return text.find(part) != std::string::npos;
 }
 
-// the first line of a text that contains key, empty if there is none
 std::string lineWith(const std::string& text, const std::string& key)
 {
     const std::size_t at = text.find(key);
@@ -104,7 +95,6 @@ std::string lineWith(const std::string& text, const std::string& key)
     return text.substr(begin, text.find('\n', at) - begin);
 }
 
-// section 1: the settings Pythia reports in its log and the events in the tree
 bool checkGeneration(const std::string& log, long long nEvents, long long nWrongCharge)
 {
     std::cout << "check_task: 1) event generation (Pythia 8)\n";
@@ -122,11 +112,9 @@ bool checkGeneration(const std::string& log, long long nEvents, long long nWrong
     return passed;
 }
 
-// sections 2 and 3: the histograms in analysis.root
 bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<long long>& nParticles)
 {
     std::cout << "check_task: 2) and 3) histograms in analysis.root\n";
-    // the file owns the histograms it returns
     auto get = [&analysisFile](const std::string& name) { return analysisFile.Get<TH1D>(name.c_str()); };
 
     bool allPresent = true;
@@ -137,7 +125,6 @@ bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<l
             allPresent = allPresent && get(binning.prefix + "_" + category.name) != nullptr;
         }
     }
-    // the remaining checks read every histogram
     if (!report(allPresent, "hN_*, hPt_*, hEta_*, hPhi_* for all, ch, pip, pim, Kp, Km, p, pbar"))
     {
         return false;
@@ -156,7 +143,6 @@ bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<l
         passed &= report(sameBinning, binning.description);
     }
 
-    // a multiplicity histogram gets one number from every event, also when it is zero
     bool oncePerEvent = true;
     for (const Category& category : categories)
     {
@@ -172,7 +158,6 @@ bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<l
     }
     passed &= report(phiInRange, "phi: every entry in 0-pi");
 
-    // every particle of a category is in its pT, eta and phi histograms, including under- and overflow
     bool countsMatch = true;
     for (std::size_t c = 0; c < categories.size(); ++c)
     {
@@ -192,7 +177,6 @@ bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<l
     return passed;
 }
 
-// section 4: the drawing macro and the plots it saved
 bool checkDrawing()
 {
     std::cout << "check_task: 4) drawing macro draw_plots.C\n";
@@ -204,7 +188,6 @@ bool checkDrawing()
         labels = labels && contains(macro, label);
     }
 
-    // every histogram on its own canvas, saved as PNG and PDF
     bool singlePlots = true;
     for (const Binning& binning : binnings)
     {
@@ -216,7 +199,6 @@ bool checkDrawing()
         }
     }
 
-    // the categories of one group overlaid on one canvas, told apart by a legend
     bool overlays = contains(macro, "TLegend");
     for (const std::string variable : {"multiplicity", "pt", "eta", "phi"})
     {
@@ -235,7 +217,6 @@ bool checkDrawing()
     return passed;
 }
 
-// technical requirements: the C++ standard of our build and the versions of ROOT and Pythia
 bool checkTechnical(const std::string& log)
 {
     std::cout << "check_task: technical requirements\n";
@@ -268,12 +249,12 @@ int check_task(const char* eventsFileName = "data/events.root",
         return 1;
     }
 
-    // read the tree once
     long long nEvents = 0;
     long long nWrongCharge = 0;
     std::vector<long long> nParticles(categories.size(), 0);
+    // the reader uses the tree in its destructor, so this block ends before the file is closed
     {
-        // the reader uses the tree in its destructor, so this block ends before the file is closed
+        
         TTreeReader reader(tree);
         TTreeReaderArray<int> pdg(reader, "pdg");
         TTreeReaderArray<int> charge(reader, "charge");

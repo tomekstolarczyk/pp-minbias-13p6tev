@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-# Runs the whole pipeline: build, event generation, analysis and plots.
+# Runs the whole pipeline: build, generation, analysis, plots, the check against the task
+# and the ALICE comparison.
 # ROOT and Pythia must be set up first (see README).
 
-# stop at the first failing command
 set -euo pipefail
-
-# run from the repository root, wherever the script is called from
 cd "$(dirname "$0")/.."
 
 # the user sets up the tools (see README); the script only checks that they are available
