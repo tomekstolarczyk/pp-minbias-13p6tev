@@ -18,7 +18,6 @@
 #include "TTreeReader.h"
 #include "TTreeReaderArray.h"
 
-
 const std::string generateLogName = "results/generate.log";
 const std::string macroFileName = "macros/draw_plots.C";
 const std::string plotsDir = "plots";
@@ -255,7 +254,6 @@ int check_task(const char* eventsFileName = "data/events.root",
     std::vector<long long> nParticles(categories.size(), 0);
     // the reader uses the tree in its destructor, so this block ends before the file is closed
     {
-        
         TTreeReader reader(tree);
         TTreeReaderArray<int> pdg(reader, "pdg");
         TTreeReaderArray<int> charge(reader, "charge");

@@ -30,7 +30,7 @@ constexpr int nBinsEta = 100;
 constexpr double minEta = -5.0;
 constexpr double maxEta = 5.0;
 
-// the task instruction gives 0 to pi but the task authors confirmed the full range -pi to pi
+// the task instruction gives 0 to pi but the task author confirmed the full range -pi to pi
 constexpr int nBinsPhi = 64;
 constexpr double minPhi = -TMath::Pi();
 constexpr double maxPhi = TMath::Pi();

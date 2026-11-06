@@ -251,7 +251,7 @@ void drawDensity(const Run& base, const Run& comparison, const std::string& outD
     legend.SetFillStyle(0);
     legend.SetTextFont(42);
     legend.SetTextSize(textSize);
-    legend.AddEntry(&alice, "ALICE data, INEL>0, mean over #left|#eta#right| < 0.5", "pe");
+    legend.AddEntry(&alice, "ALICE data, INEL>0, mean over |#eta| < 0.5", "pe");
     legend.AddEntry(&comparisonInelGt0, "PYTHIA, INEL>0, ALICE decay setting", "l");
     legend.AddEntry(&baseInelGt0, "PYTHIA, INEL>0, default decays", "l");
     legend.AddEntry(&baseAll, "PYTHIA, all inelastic, default decays", "l");
