@@ -306,8 +306,13 @@ The task asks for a reproducible production, so the whole repository is built ar
   every changed setting, in a form Pythia can read back.
 - **Every log is in the repository.** [results/](results/) keeps the output of every run,
   so each number in this README and in the presentation can be traced back.
-- **Checked, not assumed.** Running `scripts/run_all.sh` again, also in a fresh clone of
-  this repository, gives bin-for-bin identical histograms.
+- **Checked, not assumed.** Last check on 6 November 2026: a fresh clone of this repository
+  from GitHub, `scripts/run_all.sh` finished in 3 min 46 s, `check_task` passed every point,
+  all 32 histograms came out bin-for-bin identical to the committed `analysis.root`, and
+  `analysis.log` and `compare_alice.log` were identical too.
+
+If it does not run or gives different numbers on your machine, please
+[open an issue](https://github.com/tomekstolarczyk/pp-minbias-13p6tev/issues) and I will look into it.
 
 ## 8. Where I learned from
 

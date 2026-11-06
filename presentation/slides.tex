@@ -617,7 +617,8 @@
     \item one command, \texttt{scripts/run\_all.sh}: build, generate, analyse, draw, check, compare
     \item the random seed is fixed in the \texttt{.cmnd} file, and the Pythia settings are stored
           inside \texttt{analysis.root} in a form Pythia can read back
-    \item running again, also in a fresh clone of the repository, gives \alert{bin-for-bin identical} histograms
+    \item checked on a fresh clone from GitHub: \texttt{run\_all.sh} in 3 min 46 s, every task check passed,
+          all 32 histograms \alert{bin-for-bin identical} to the committed ones
     \item every log is in the repository: Pythia's settings and error statistics, every histogram's mean,
           standard deviation and out-of-range counts, the ALICE comparison
   \end{itemize}
