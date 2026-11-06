@@ -137,7 +137,7 @@ bool drawSingle(TFile& file, const Variable& variable, const Curve& curve, const
 
     TCanvas canvas((std::string("c_") + histogram->GetName()).c_str(), "", 800, 600);
     prepareCanvas(canvas, variable);
-    histogram->Draw(variable.points ? "P" : "HIST");
+    histogram->Draw(variable.points ? "P" : "HIST ][");
     drawInfo(nEvents);
     save(canvas, outDir + "/" + histogram->GetName());
     return true;
@@ -240,7 +240,7 @@ bool drawOverlay(TFile& file, const Variable& variable, const Group& group, cons
 
     plotPad->cd();
     prepareCanvas(*plotPad, variable);
-    const std::string option = variable.points ? "P" : "HIST";
+    const std::string option = variable.points ? "P" : "HIST ][";
     for (std::size_t i = 0; i < histograms.size(); ++i)
     {
         histograms[i]->Draw(i == 0 ? option.c_str() : (option + " SAME").c_str());
@@ -312,7 +312,7 @@ bool drawShapes(TFile& file, const Variable& variable, const std::string& yTitle
     prepareCanvas(canvas, variable);
     for (std::size_t i = 0; i < histograms.size(); ++i)
     {
-        histograms[i]->Draw(i == 0 ? "HIST" : "HIST SAME");
+        histograms[i]->Draw(i == 0 ? "HIST ][" : "HIST ][ SAME");
         legend.AddEntry(histograms[i].get(), legends[i].c_str(), "l");
     }
     legend.Draw();
