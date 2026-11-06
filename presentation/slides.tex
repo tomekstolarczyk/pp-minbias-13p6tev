@@ -37,13 +37,7 @@
     \begin{column}{0.27\textwidth}\small #3\end{column}
   \end{columns}}
 
-\newcommand{\fourplots}[4]{%
-  \begin{center}
-    \includegraphics[width=0.3\textwidth]{#1}\hspace{1em}\includegraphics[width=0.3\textwidth]{#2}\\[-0.2em]
-    \includegraphics[width=0.3\textwidth]{#3}\hspace{1em}\includegraphics[width=0.3\textwidth]{#4}
-  \end{center}\vspace{-0.6em}}
-
-\title{What happens when two protons collide at $\sqrt{s} = 13.6$\,TeV?}
+\title{What happens when two protons collide at \texorpdfstring{$\sqrt{s} = 13.6$\,TeV}{√s = 13.6 TeV}?}
 \subtitle{Minimum-bias pp collisions: Pythia~8 events, a C++/ROOT analysis and a look at ALICE data}
 \author{Tomasz Stolarczyk}
 \date{November 2026}
@@ -105,7 +99,7 @@
   \vspace{1.2em}
   \begin{itemize}
     \item \texttt{scripts/run\_all.sh} runs everything with one command, in about 2 minutes (4 with the ALICE comparison)
-    \item built with CMake as true C++17; Pythia 8.318, ROOT 6.40.04, GCC 12.3, Ubuntu 22.04
+    \item built with CMake as C++17; Pythia 8.318, ROOT 6.40.04, GCC 12.3, Ubuntu 22.04
     \item every run leaves its log in \texttt{results/}, so every number in this presentation can be traced back
   \end{itemize}
 \end{frame}
@@ -243,6 +237,7 @@
   \begin{itemize}
     \item 4.24 $K^+$ and 4.12 $K^-$ per event, about 9 times fewer than pions
     \item 14\,254 events have no $K^+$, 15\,474 have no $K^-$
+    \item on the task range 0--400 the distribution sits at the left edge; the overlays later zoom in
   \end{itemize}
 \end{frame}
 
@@ -260,8 +255,8 @@
   \twoplots{histograms_single/hPt_all}{histograms_single/hPt_ch}
   \small
   \begin{itemize}
-    \item most particles have \pt\ around 0.25 GeV; up to 10 GeV the spectrum falls by about five orders of magnitude
-    \item $\langle\pt\rangle$ = 0.40 GeV for all particles, 0.51 GeV for the charged ones: the neutral ones are softer
+    \item the charged spectrum peaks at 0.2--0.3 GeV, the one of all particles in the first bin
+    \item $\langle\pt\rangle$ = 0.40 GeV for all, 0.51 GeV for charged: the neutral ones are softer
   \end{itemize}
 \end{frame}
 
@@ -278,7 +273,7 @@
   \twoplots{histograms_single/hPt_Kp}{histograms_single/hPt_Km}
   \small
   \begin{itemize}
-    \item $\langle\pt\rangle$ = 0.68 GeV, higher than for pions; the peak is at 0.35 GeV instead of 0.25 GeV
+    \item $\langle\pt\rangle$ = 0.68 GeV, higher than for pions; the peak is in the 0.3--0.4 GeV bin, one bin higher
     \item with fewer particles, the tail above about 5 GeV fluctuates more
   \end{itemize}
 \end{frame}
@@ -330,17 +325,37 @@
 \end{frame}
 
 % ---------------------------------------------------------------------------------------------
-\begin{frame}{Azimuthal angle: all, charged, $\pi^+$ and $\pi^-$}
-  \fourplots{histograms_single/hPhi_all}{histograms_single/hPhi_ch}{histograms_single/hPhi_pip}{histograms_single/hPhi_pim}
+\begin{frame}{Azimuthal angle: all and charged particles}
+  \twoplots{histograms_single/hPhi_all}{histograms_single/hPhi_ch}
   \small
-  Flat: mean 0.000 and standard deviation 1.814 = $\pi/\sqrt{3}$, the values of a uniform
-  distribution on $[-\pi, \pi]$. No particle falls outside the range.
+  \begin{itemize}
+    \item flat: mean 0.000 and standard deviation 1.814 = $\pi/\sqrt{3}$, the values of a uniform distribution on $[-\pi, \pi]$
+    \item no particle falls outside the range
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{Azimuthal angle: $K^\pm$, $p$ and \pbar}
-  \fourplots{histograms_single/hPhi_Kp}{histograms_single/hPhi_Km}{histograms_single/hPhi_p}{histograms_single/hPhi_pbar}
+\begin{frame}{Azimuthal angle: $\pi^+$ and $\pi^-$}
+  \twoplots{histograms_single/hPhi_pip}{histograms_single/hPhi_pim}
   \small
-  Also flat; with fewer particles per bin, the bin-to-bin fluctuations are larger.
+  \begin{itemize}
+    \item flat as well, with the same mean and standard deviation
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Azimuthal angle: $K^+$ and $K^-$}
+  \twoplots{histograms_single/hPhi_Kp}{histograms_single/hPhi_Km}
+  \small
+  \begin{itemize}
+    \item flat; with about 9 times fewer particles than pions, the bin-to-bin fluctuations are larger
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Azimuthal angle: $p$ and \pbar}
+  \twoplots{histograms_single/hPhi_p}{histograms_single/hPhi_pbar}
+  \small
+  \begin{itemize}
+    \item flat; the level differs because there are fewer antiprotons, not because of the angle
+  \end{itemize}
 \end{frame}
 
 \section{Comparing the categories}
@@ -390,7 +405,8 @@
 \begin{frame}{$\pi^+$ and $\pi^-$: $\eta$ and $\phi$}
   \twosquares{histograms_overlay/eta_pions}{histograms_overlay/phi_pions}{%
     \begin{itemize}
-      \item $\pi^-/\pi^+ \approx 0.98$, flat in $\eta$ and in $\phi$: a small excess of $\pi^+$ everywhere
+      \item $\pi^-/\pi^+ \approx 1.00$ inside $|\eta| < 5$, but 0.98 in $\phi$, which counts every particle
+      \item so the extra $\pi^+$ are outside the $\eta$ range: 91\% of the difference has $|\eta| > 5$
     \end{itemize}}
 \end{frame}
 
@@ -405,7 +421,8 @@
 \begin{frame}{$K^+$ and $K^-$: $\eta$ and $\phi$}
   \twosquares{histograms_overlay/eta_kaons}{histograms_overlay/phi_kaons}{%
     \begin{itemize}
-      \item flat ratios, slightly below 1, in $\eta$ and in $\phi$
+      \item $K^-/K^+ \approx 1.00$ inside $|\eta| < 5$, 0.97 in $\phi$
+      \item as for pions, the extra $K^+$ are outside the $\eta$ range: 87\% of the difference has $|\eta| > 5$
     \end{itemize}}
 \end{frame}
 
@@ -422,8 +439,8 @@
   \twosquares{histograms_overlay/eta_protons}{histograms_overlay/phi_protons}{%
     \begin{itemize}
       \item inside $|\eta| < 5$, \pbar/$p$ = 0.97 and flat
-      \item so most of the extra protons are outside the range: 50\% of the protons
-            against 29\% of the antiprotons have $|\eta| > 5$
+      \item so the extra protons are outside the range: 96\% of the difference has $|\eta| > 5$
+            (50\% of the protons against 29\% of the antiprotons)
     \end{itemize}}
 \end{frame}
 
@@ -434,7 +451,7 @@
   \begin{itemize}
     \item each curve divided by its number of particles, so only the shapes are compared
     \item the mean \pt\ grows with the mass: 0.48, 0.68 and 0.73 GeV for $\pi$, $K$ and $p$+\pbar
-    \item the dip at $\eta = 0$ gets deeper with the mass: 93\%, 77\% and 63\% of the maximum
+    \item the dip at $\eta = 0$ deepens with the mass: the centre is at 93\%, 77\% and 62\% of the maximum
   \end{itemize}
 \end{frame}
 
@@ -627,7 +644,8 @@
 \begin{frame}{Summary}
   \begin{itemize}
     \item $N_\mathrm{ch}$ is always even, and there are more $\pi^+$, $K^+$ and $p$ than $\pi^-$, $K^-$ and \pbar
-    \item the extra protons are at low \pt\ and mostly outside $|\eta| < 5$
+    \item the extra $\pi^+$, $K^+$ and $p$ are mostly outside $|\eta| < 5$ (91\%, 87\% and 96\%);
+          the extra protons are also at low \pt
     \item heavier particles have a higher mean \pt\ and a deeper dip at $\eta = 0$
     \item with ALICE's definitions, PYTHIA matches the measured average density at 13.6 TeV,
           but not the busiest and the quietest collisions
@@ -644,7 +662,7 @@
 
   \vspace{0.5em}
   \footnotesize
-  ALICE has not published identified-particle spectra at 13.6 TeV yet.\\
+  There is no ALICE paper on identified-particle spectra at 13.6 TeV yet.\\
   I hope that changes soon, and I would be glad to help :)
 \end{frame}
 

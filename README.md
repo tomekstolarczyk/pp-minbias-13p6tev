@@ -280,7 +280,7 @@ INEL>0 percentiles that the same table lists for each class.
 
 My PYTHIA reproduces the PYTHIA values computed by ALICE within 2% in every class. And the model, which gets the average right, misses the extremes: it puts too many particles into the busiest collisions and too few into the quietest ones, as the paper also concludes.
 
-ALICE has not published identified-particle spectra at 13.6 TeV yet. I hope that will change soon, and I would be glad to help with that :)
+There is no ALICE paper on identified-particle spectra at 13.6 TeV yet. I hope that will change soon, and I would be glad to help with that :)
 
 ## 6. Repository layout
 
