@@ -22,6 +22,8 @@ Author: Tomasz Stolarczyk
 
 </div>
 
+All plots with comments can also be found in the slides: [presentation/slides.pdf](presentation/slides.pdf)
+
 ## Contents
 
 1. [The pipeline in one minute](#1-the-pipeline-in-one-minute)
@@ -31,7 +33,7 @@ Author: Tomasz Stolarczyk
 5. [Bonus: comparison with an ALICE paper](#5-bonus-comparison-with-an-alice-paper)
 6. [Repository layout](#6-repository-layout)
 7. [Reproducible by design](#7-reproducible-by-design)
-8. [Where I learned from](#8-where-i-learned-from)
+8. [References](#8-references)
 
 ## 1. The pipeline in one minute
 
@@ -314,21 +316,24 @@ The task asks for a reproducible production, so the whole repository is built ar
 If it does not run or gives different numbers on your machine, please
 [open an issue](https://github.com/tomekstolarczyk/pp-minbias-13p6tev/issues) and I will look into it.
 
-## 8. Where I learned from
+## 8. References
 
-Pythia
-- [Pythia 8.3 worksheet](https://pythia8.web.cern.ch/materials/pdf/worksheet8312.pdf): my first steps with Pythia
-- [Pythia 8.318 online manual](https://pythia8.web.cern.ch/manuals/pythia8318/Welcome.html): the manual I followed
-- [A comprehensive guide to the physics and usage of PYTHIA 8.3](https://pythia8.web.cern.ch/manuals/pdfdoc/pythia8300.pdf): the physics behind Pythia
+**Pythia**
 
-ROOT
-- [Getting started](https://root.cern/learn/): my first steps with ROOT
-- [User manual](https://root.cern/manual/): the manual I followed
-- [Reference guide 6.40](https://root.cern/doc/v640/): the full class documentation
+- Tutorial to start with: *PYTHIA 8.3 Worksheet*, [worksheet8312.pdf](https://pythia8.web.cern.ch/materials/pdf/worksheet8312.pdf)
+- Main documentation: *PYTHIA 8.318 online manual*, [manuals/pythia8318](https://pythia8.web.cern.ch/manuals/pythia8318/Welcome.html)
+- The physics behind it: C. Bierlich et al., *A comprehensive guide to the physics and usage of PYTHIA 8.3*, [pythia8300.pdf](https://pythia8.web.cern.ch/manuals/pdfdoc/pythia8300.pdf)
 
-ALICE
-- [arXiv:2602.10658](https://arxiv.org/abs/2602.10658): ALICE Collaboration, the paper I compare with
-- [AliceO2 Pythia configuration](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg): how ALICE sets up Pythia for minimum-bias pp
+**ROOT**
+
+- Basics tutorial: *Learn ROOT*, [root.cern/learn](https://root.cern/learn/)
+- User manual: *ROOT Manual*, [root.cern/manual](https://root.cern/manual/)
+- Full documentation: *ROOT Reference Guide 6.40*, [root.cern/doc/v640](https://root.cern/doc/v640/)
+
+**ALICE**
+
+- ALICE Collaboration, *Inclusive and multiplicity-dependent pseudorapidity densities of charged particles in pp collisions at √s = 13.6 TeV*, [arXiv:2602.10658](https://arxiv.org/abs/2602.10658)
+- ALICE O2, Pythia configuration for minimum-bias pp collisions, [Generators/share/egconfig/pythia8_inel.cfg](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg)
 
 ## License
 This project is licensed under the terms of the MIT license. See the [LICENSE](LICENSE) file for details.
