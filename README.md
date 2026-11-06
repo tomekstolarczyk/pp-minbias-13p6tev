@@ -23,10 +23,10 @@ Author: Tomasz Stolarczyk
 1. [The pipeline in one minute](#1-the-pipeline-in-one-minute)
 2. [Quick start](#2-quick-start)
 3. [Step by step](#3-step-by-step)
-4. [Reproducible by design](#4-reproducible-by-design)
-5. [How I read the task](#5-how-i-read-the-task)
-6. [Bonus: comparison with an ALICE paper](#6-bonus-comparison-with-an-alice-paper)
-7. [Repository layout](#7-repository-layout)
+4. [How I read the task](#4-how-i-read-the-task)
+5. [Bonus: comparison with an ALICE paper](#5-bonus-comparison-with-an-alice-paper)
+6. [Repository layout](#6-repository-layout)
+7. [Reproducible by design](#7-reproducible-by-design)
 8. [Where I learned from](#8-where-i-learned-from)
 
 ## 1. The pipeline in one minute
@@ -185,30 +185,14 @@ root -l -b -q tests/check_task.C
 | 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [0, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
 | 4) Macro | opens `analysis.root`, uses the required axis labels and legends, every plot exists as PNG and PDF |
 
-## 4. Reproducible by design
-
-The task asks for a reproducible production, so the whole repository is built around it:
-
-- **One command.** `scripts/run_all.sh` builds the programs and runs every step in order:
-  generation, analysis, plots, the check against the task and the ALICE comparison. It
-  stops at the first failing step.
-- **Fixed seed.** The random seed is set in [config/minbias.cmnd](config/minbias.cmnd),
-  together with every other setting, so the same Pythia version gives the same events.
-- **The settings travel with the results.** `analysis.root` stores the Pythia version and
-  every changed setting, in a form Pythia can read back.
-- **Every log is in the repository.** [results/](results/) keeps the output of every run,
-  so each number in this README and in the presentation can be traced back.
-- **Checked, not assumed.** Running `scripts/run_all.sh` again, also in a fresh clone of
-  this repository, gives bin-for-bin identical histograms.
-
-## 5. How I read the task
+## 4. How I read the task
 
 A few points of the task leave room for interpretation. Here is what I chose and why.
 
 **Minimum bias.** "Minimum bias (SoftQCD)" does not name a single Pythia switch. I use `SoftQCD:inelastic`: every inelastic collision (non-diffractive and diffractive), without elastic scattering, which produces no new particles. ALICE's own simulation software uses the same switch for minimum-bias pp collisions ([pythia8_inel.cfg](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg)). Switching is one line in the `.cmnd` file.
 
 **Decays and "final state".** I take the task literally: a particle is analysed if Pythia's `isFinal()` says so, with Pythia's default decays. This means that K⁰<sub>S</sub> and Λ decay and their daughters count as final-state particles. When comparing with ALICE
-I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#6-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
+I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#5-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
 
 **φ range.** Pythia gives φ in (−π, π], the task asks for [0, π]. I fill |φ|: the collisions have no preferred direction around the beam, so |φ| has the same distribution as φ and every particle lands inside the requested range.
 
@@ -217,7 +201,7 @@ I found that their setup keeps these longer-lived particles undecayed, so the co
 **Nothing is thrown away.** I apply no kinematic cuts. Values outside a histogram range
 go to its underflow or overflow bin and count in the mean and standard deviation, so the statistics box shows the true values. The ranges from the task cut off a lot: 12.7% of the events have N<sub>all</sub> ≥ 400, and 27% of the charged particles have |η| > 5. [results/analysis.log](results/analysis.log) lists everything outside the ranges for each histogram.
 
-## 6. Bonus: comparison with an ALICE paper
+## 5. Bonus: comparison with an ALICE paper
 
 A simulation is a model, and a model is only as good as its agreement with nature. So once the task was done, I wanted to see how my collisions compare with real ones, measured by ALICE at the same energy.
 
@@ -249,7 +233,9 @@ With matched definitions PYTHIA agrees with the measurement within its uncertain
 
 **Multiplicity classes.** ALICE also sorts the collisions by how many particles hit its forward detector FT0 and measures the density in each class (Table 2 of the paper). I did the same with my comparison run, counting the charged particles in the FT0 acceptance (3.5 < η < 4.9 and −3.3 < η < −2.1):
 
-| class (%) | data | PYTHIA (ALICE) | PYTHIA (ours) | ours/ data |
+<div align="center">
+
+| class (%) | data | PYTHIA (ALICE) | PYTHIA (ours) | ours / data |
 | --- | --- | --- | --- | --- |
 | 0–1 | 21.78 ± 0.38 | 25.50 | 25.96 | 1.19 |
 | 1–5 | 18.48 ± 0.25 | 20.71 | 20.91 | 1.13 |
@@ -263,8 +249,10 @@ With matched definitions PYTHIA agrees with the measurement within its uncertain
 | 70–100 | 3.69 ± 0.06 | 2.47 | 2.49 | 0.68 |
 | **0–100** | **7.10 ± 0.18** | **7.11** | **7.00** | **0.99** |
 
+</div>
+
 ⟨dN<sub>ch</sub>/dη⟩ in |η| < 0.5, INEL>0. The classes, the data and PYTHIA (ALICE, version
-8.311) are from Table 2 of the paper; PYTHIA (mine, version 8.318) is from
+8.311) are from Table 2 of the paper; PYTHIA (ours, version 8.318) is from
 [results/compare_alice.log](results/compare_alice.log), where my events are split at the
 INEL>0 percentiles that the same table lists for each class.
 
@@ -272,7 +260,7 @@ My PYTHIA reproduces the PYTHIA values computed by ALICE within 2% in every clas
 
 ALICE has not published identified-particle spectra at 13.6 TeV yet. I hope that will change soon, and I would be glad to help with that :)
 
-## 7. Repository layout
+## 6. Repository layout
 
 ```
 config/       Pythia settings: the task run and the ALICE comparison run
@@ -284,6 +272,22 @@ results/      analysis.root and the log of every run
 plots/        histograms_single/, histograms_overlay/, alice_comparison/
 presentation/ slides.pdf with all plots, built from slides.tex (pdflatex, twice)
 ```
+
+## 7. Reproducible by design
+
+The task asks for a reproducible production, so the whole repository is built around it:
+
+- **One command.** `scripts/run_all.sh` builds the programs and runs every step in order:
+  generation, analysis, plots, the check against the task and the ALICE comparison. It
+  stops at the first failing step.
+- **Fixed seed.** The random seed is set in [config/minbias.cmnd](config/minbias.cmnd),
+  together with every other setting, so the same Pythia version gives the same events.
+- **The settings travel with the results.** `analysis.root` stores the Pythia version and
+  every changed setting, in a form Pythia can read back.
+- **Every log is in the repository.** [results/](results/) keeps the output of every run,
+  so each number in this README and in the presentation can be traced back.
+- **Checked, not assumed.** Running `scripts/run_all.sh` again, also in a fresh clone of
+  this repository, gives bin-for-bin identical histograms.
 
 ## 8. Where I learned from
 
