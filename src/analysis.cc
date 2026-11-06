@@ -1,7 +1,6 @@
 // Fills multiplicity, pT, eta and phi histograms of final-state particles for eight categories.
 // Usage: analysis <events.root> <analysis.root>
 
-#include <cmath>
 #include <cstdio>
 #include <iostream>
 #include <memory>
@@ -31,8 +30,9 @@ constexpr int nBinsEta = 100;
 constexpr double minEta = -5.0;
 constexpr double maxEta = 5.0;
 
+// the task instruction gives 0 to pi but the task authors confirmed the full range -pi to pi
 constexpr int nBinsPhi = 64;
-constexpr double minPhi = 0.0;
+constexpr double minPhi = -TMath::Pi();
 constexpr double maxPhi = TMath::Pi();
 
 constexpr int pdgPion = 211;
@@ -129,8 +129,7 @@ int main(int argc, char* argv[])
         std::cerr << "No tree \"events\" in " << argv[1] << "\n";
         return 1;
     }
-    // the generator settings are copied to the output, so analysis.root records how it was produced;
-    // a copy, because the input file deletes the original when it is closed
+    // the generator settings are copied to the output, so analysis.root records how it was produced
     const TNamed* settingsInFile = inFile->Get<TNamed>("generator_settings");
     if (!settingsInFile)
     {
@@ -181,8 +180,7 @@ int main(int argc, char* argv[])
                     ++multiplicity[c];
                     histograms[c].pt->Fill(pt[i]);
                     histograms[c].eta->Fill(eta[i]);
-                    // phi is in (-pi, pi] but the task range is [0, pi]; isotropy makes |phi| equivalent
-                    histograms[c].phi->Fill(std::abs(phi[i]));
+                    histograms[c].phi->Fill(phi[i]);
                 }
             }
             // once per event, also when the multiplicity is zero
@@ -220,7 +218,7 @@ int main(int argc, char* argv[])
     std::printf("  hN_*    multiplicity per event     %3d bins in [%g, %g]\n", nBinsN, minN, maxN);
     std::printf("  hPt_*   transverse momentum [GeV]  %3d bins in [%g, %g]\n", nBinsPt, minPt, maxPt);
     std::printf("  hEta_*  pseudorapidity             %3d bins in [%g, %g]\n", nBinsEta, minEta, maxEta);
-    std::printf("  hPhi_*  azimuthal angle |phi|      %3d bins in [%g, pi]\n\n", nBinsPhi, minPhi);
+    std::printf("  hPhi_*  azimuthal angle phi        %3d bins in [-pi, pi]\n\n", nBinsPhi);
 
     std::cout << "Particles per category:\n";
     std::printf("  %-6s %10s %10s\n", "", "in total", "per event");

@@ -151,7 +151,7 @@ when it is zero; p<sub>T</sub>, η and φ once per particle.
 | `hN` | 400 | [0, 400] |
 | `hPt` | 100 | [0, 10] GeV |
 | `hEta` | 100 | [−5, 5] |
-| `hPhi` | 64 | [0, π] |
+| `hPhi` | 64 | [−π, π] |
 
 </td>
 </tr>
@@ -184,7 +184,7 @@ The number of charged particles is always even, because the two protons bring a 
 
 </div>
 
-One number per histogram type: the mean of `hN` (particles per collision), the mean of `hPt`, and the share of particles that `hEta` keeps in its underflow and overflow. The φ distributions are flat, so their mean is π/2 for every category and is left out. The means include the values outside the histogram ranges; every number is in [results/analysis.log](results/analysis.log).
+One number per histogram type: the mean of `hN` (particles per collision), the mean of `hPt`, and the share of particles that `hEta` keeps in its underflow and overflow. The φ distributions are flat, so their mean is 0 for every category and is left out. The means include the values outside the histogram ranges; every number is in [results/analysis.log](results/analysis.log).
 
 ### Check
 
@@ -200,7 +200,7 @@ root -l -b -q tests/check_task.C
 | --- | --- |
 | Technical requirements | the build used `-std=c++17`, ROOT major version 6, Pythia version 8 |
 | 1) Generation | pp beams, `Beams:eCM = 13600`, SoftQCD on, 100 000 events, total charge +2 in every event (only final-state particles in the tree) |
-| 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [0, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
+| 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [−π, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
 | 4) Macro | opens `analysis.root`, uses the required axis labels and legends, every plot exists as PNG and PDF |
 
 </div>
@@ -214,7 +214,7 @@ A few points of the task leave room for interpretation. Here is what I chose and
 **Decays and "final state".** I take the task literally: a particle is analysed if Pythia's `isFinal()` says so, with Pythia's default decays. This means that K⁰<sub>S</sub> and Λ decay and their daughters count as final-state particles. When comparing with ALICE
 I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#5-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
 
-**φ range.** Pythia gives φ in (−π, π], the task asks for [0, π]. I fill |φ|: the collisions have no preferred direction around the beam, so |φ| has the same distribution as φ and every particle lands inside the requested range.
+**φ range.** The task text gives 0–π for the φ histogram, while Pythia gives φ in (−π, π]. The task author, dr hab. Małgorzata Janik, clarified that this was a mistake in the text and that the histogram should cover the full range from −π to π. `hPhi` therefore spans [−π, π] and keeps the 64 bins from the task.
 
 **`all` and `ch`.** The task lists "all charged particles" but names both `hN_all` and `hN_ch`. I read `all` as every final-state particle, neutral ones included, and `ch` as the charged ones.
 

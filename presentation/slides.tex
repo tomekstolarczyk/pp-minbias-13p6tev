@@ -165,7 +165,7 @@
         \texttt{hN\_*}   & 400 & $[0, 400]$ \\
         \texttt{hPt\_*}  & 100 & $[0, 10]$ GeV \\
         \texttt{hEta\_*} & 100 & $[-5, 5]$ \\
-        \texttt{hPhi\_*} & 64  & $[0, \pi]$ \\
+        \texttt{hPhi\_*} & 64  & $[-\pi, \pi]$ \\
         \bottomrule
       \end{tabular}
     \end{column}
@@ -183,8 +183,8 @@
     \item[Minimum bias] \texttt{SoftQCD:inelastic}: every inelastic collision, without elastic scattering,
       which makes no new particles. ALICE's own Pythia setup uses the same switch.
     \item[Final state] literally: what \texttt{isFinal()} says, with Pythia's default decays.
-    \item[$\phi$ range] Pythia gives $(-\pi, \pi]$, the task asks for $[0, \pi]$: I fill $|\phi|$,
-      which has the same distribution because no direction around the beam is special.
+    \item[$\phi$ range] the task text gives $[0, \pi]$, Pythia gives $(-\pi, \pi]$; the task author
+      confirmed the full range, so \texttt{hPhi} spans $[-\pi, \pi]$ with the 64 bins from the task.
     \item[\texttt{all} and \texttt{ch}] \texttt{all} = every final-state particle, neutral ones included;
       \texttt{ch} = charge $\neq 0$.
     \item[Nothing is thrown away] no cuts; values outside a range go to the under- or overflow bin and
@@ -333,8 +333,8 @@
 \begin{frame}{Azimuthal angle: all, charged, $\pi^+$ and $\pi^-$}
   \fourplots{histograms_single/hPhi_all}{histograms_single/hPhi_ch}{histograms_single/hPhi_pip}{histograms_single/hPhi_pim}
   \small
-  Flat: mean 1.571 = $\pi/2$ and standard deviation 0.907 = $\pi/\sqrt{12}$, the values of a uniform
-  distribution on $[0, \pi]$. Thanks to $|\phi|$, no particle falls outside the range.
+  Flat: mean 0.000 and standard deviation 1.814 = $\pi/\sqrt{3}$, the values of a uniform
+  distribution on $[-\pi, \pi]$. No particle falls outside the range.
 \end{frame}
 
 \begin{frame}{Azimuthal angle: $K^\pm$, $p$ and \pbar}
@@ -602,14 +602,14 @@
     \midrule
     technical  & build with \texttt{-std=c++17}, ROOT 6, Pythia 8 \\
     1) generation & pp, \texttt{Beams:eCM = 13600}, SoftQCD, 100\,000 events, total charge $+2$ in every event \\
-    2), 3) histograms & 32 names, binning and ranges, one \texttt{hN} entry per event, every $\phi$ in $[0, \pi]$,
+    2), 3) histograms & 32 names, binning and ranges, one \texttt{hN} entry per event, every $\phi$ in $[-\pi, \pi]$,
                         each category holds exactly its particles \\
     4) macro & opens \texttt{analysis.root}, axis labels, legends, every plot as PNG and PDF \\
     \bottomrule
   \end{tabular}
   \end{center}
   Each check was tested by breaking its line of code on purpose (wrong PDG sign, no \texttt{isFinal()},
-  no $|\phi|$, $N = 0$ not filled, wrong number of bins) and watching it fail.
+  $N = 0$ not filled, wrong number of bins) and watching it fail.
 \end{frame}
 
 \begin{frame}{Reproducible by design}

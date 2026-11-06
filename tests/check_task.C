@@ -42,7 +42,8 @@ const std::vector<Binning> binnings = {
     {"hN", "N: 0-400, 400 bins", 400, 0.0, 400.0},
     {"hPt", "pT: 0-10 GeV, 100 bins", 100, 0.0, 10.0},
     {"hEta", "eta: -5 to 5, 100 bins", 100, -5.0, 5.0},
-    {"hPhi", "phi: 0-pi, 64 bins", 64, 0.0, TMath::Pi()},
+    // the task text gives 0-pi; the task author confirmed the full range -pi to pi
+    {"hPhi", "phi: -pi to pi, 64 bins", 64, -TMath::Pi(), TMath::Pi()},
 };
 
 struct Category
@@ -156,7 +157,7 @@ bool checkHistograms(TFile& analysisFile, long long nEvents, const std::vector<l
         const TH1D* phi = get("hPhi_" + category.name);
         phiInRange = phiInRange && phi->GetBinContent(0) == 0 && phi->GetBinContent(phi->GetNbinsX() + 1) == 0;
     }
-    passed &= report(phiInRange, "phi: every entry in 0-pi");
+    passed &= report(phiInRange, "phi: every entry in -pi to pi");
 
     bool countsMatch = true;
     for (std::size_t c = 0; c < categories.size(); ++c)

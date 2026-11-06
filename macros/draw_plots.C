@@ -364,7 +364,7 @@ int draw_plots(const char* inFileName = "results/analysis.root", const char* out
         {"hN", "multiplicity", "Multiplicity", "Multiplicity N", "Events", true, true, false},
         {"hPt", "pt", "Transverse momentum", "p_{T} [GeV]", "Particles / 0.1 GeV", true, false, true},
         {"hEta", "eta", "Pseudorapidity", "#eta", "Particles / 0.1", false, false, true},
-        {"hPhi", "phi", "Azimuthal angle", "#phi [rad]", "Particles / 0.049 rad", false, false, true},
+        {"hPhi", "phi", "Azimuthal angle", "#phi [rad]", "Particles / 0.098 rad", false, false, true},
     };
 
     const Color_t positive = kRed + 1;
