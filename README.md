@@ -89,7 +89,7 @@ make -j4 && make install
 In every new shell, before building or running:
 
 ```bash
-source <root-install-dir>/bin/thisroot.sh   # not needed if ROOT comes from a package manager
+source <root-install-dir>/bin/thisroot.sh # not needed if ROOT comes from a package manager
 export PATH=$HOME/pythia8/bin:$PATH
 ```
 
@@ -170,7 +170,7 @@ root -l -b -q 'macros/draw_plots.C("results/analysis.root", "plots")'
 - [plots/histograms_single/](plots/histograms_single/): each of the 32 histograms on its own canvas, with the full range from the task and a statistics box (entries, mean, standard deviation, underflow, overflow).
 - [plots/histograms_overlay/](plots/histograms_overlay/): all vs charged, π⁺ vs π⁻, K⁺ vs K⁻ and p vs p̄ for each variable, with the ratio of the two below (16 plots), and the shapes of the p<sub>T</sub> and η distributions of π, K and p (2 plots).
 
-The number of charged particles is always even, because the two protons bring a total charge of +2. Every odd bin of `hN_ch` is therefore empty. I draw the multiplicities as points, so this stays visible, instead of merging the bins in pairs and hiding it.
+The two colliding protons carry a total charge of +2, so every event has exactly two more positive than negative particles. The number of charged particles is therefore always even, and every bin of `hN_ch` with an odd N is empty. I draw the multiplicity histograms as points, so the empty bins simply have no point; drawn as a line, the histogram would drop to zero at every other bin. Merging the bins in pairs would hide this, but the task asks for 400 bins, so I keep them.
 
 ### Results at a glance
 
@@ -216,7 +216,7 @@ A few points of the task leave room for interpretation. Here is what I chose and
 **Decays and "final state".** I take the task literally: a particle is analysed if Pythia's `isFinal()` says so, with Pythia's default decays. This means that K⁰<sub>S</sub> and Λ decay and their daughters count as final-state particles. When comparing with ALICE
 I found that their setup keeps these longer-lived particles undecayed, so the comparison has its own configuration (see the [bonus section](#5-bonus-comparison-with-an-alice-paper)); the histograms of the task stay as the task asks.
 
-**φ range.** The task text gives 0–π for the φ histogram, while Pythia gives φ in (−π, π]. The task author, dr hab. Małgorzata Janik, clarified that this was a mistake in the text and that the histogram should cover the full range from −π to π. `hPhi` therefore spans [−π, π] and keeps the 64 bins from the task.
+**φ range.** The task text gives 0–π for the φ histogram, while Pythia gives φ in (−π, π]. The task author clarified that this was a mistake in the text and that the histogram should cover the full range from −π to π. `hPhi` therefore spans [−π, π] and keeps the 64 bins from the task.
 
 **`all` and `ch`.** The task lists "all charged particles" but names both `hN_all` and `hN_ch`. I read `all` as every final-state particle, neutral ones included, and `ch` as the charged ones.
 
@@ -227,7 +227,7 @@ go to its underflow or overflow bin and count in the mean and standard deviation
 
 A simulation is a model, and a model is only as good as its agreement with nature. So once the task was done, I wanted to see how my collisions compare with real ones, measured by ALICE at the same energy.
 
-**Finding the right paper.** Searching arXiv for ALICE papers with 13.6 TeV in the title gives four:
+**Finding the right paper.** Searching arXiv for ALICE papers with 13.6 TeV in the title gives four (November 2026):
 
 - *Measurement of prompt and non-prompt D\*⁺-meson spin alignment in pp collisions at √s = 13.6 TeV* ([arXiv:2609.39713](https://arxiv.org/abs/2609.39713))
 - *Measurement of the B⁰-meson production cross section in proton–proton collisions at √s = 13.6 TeV* ([arXiv:2603.18904](https://arxiv.org/abs/2603.18904))
@@ -239,11 +239,11 @@ Only the last one is about the same particles I histogram for the task: it measu
 density dN<sub>ch</sub>/dη. That is my `hEta_ch`, divided by the number of events and the
 bin width. So that is the paper I compare with.
 
-**Counting the way ALICE counts.** A fair comparison needs the same definitions, so I tuned a second run of the model to match theirs:
+**Counting the way ALICE counts.** A fair comparison needs the same definitions, so I made a second run with the settings ALICE uses:
 
 - **Events:** the paper reports INEL>0 collisions, which have at least one charged particle in |η| < 1. 
 I apply the same selection to my events.
-- **Decays:** ALICE's own Pythia configuration ([pythia8_inel.cfg](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg)) lets only particles with cτ₀ < 10 mm decay, so K⁰<sub>S</sub>, Λ and similar particles stay undecayed. My comparison run does the same ([config/minbias_alice.cmnd](config/minbias_alice.cmnd)). It removes about 10% of the π⁺ and 20% of the protons, their decay products, and leaves the kaons untouched.
+- **Decays:** ALICE's own Pythia configuration ([pythia8_inel.cfg](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg)) lets only particles with cτ₀ < 10 mm decay, so K⁰<sub>S</sub>, Λ and similar particles stay undecayed. My comparison run does the same ([config/minbias_alice.cmnd](config/minbias_alice.cmnd)). Without these decays there are about 10% fewer π⁺ and 20% fewer protons, and the kaons are unchanged.
 
 **One definition at a time.** The plot below is my version of Fig. 1 of the paper. I switched the definitions on one by one: the grey curve is the task run, the blue one keeps only INEL>0 events, and the red one also uses the ALICE decay setting. Averaged over |η| < 0.5 they give 6.68, 7.71 and 7.00, against 7.10 ± 0.18 measured by ALICE ([results/compare_alice.log](results/compare_alice.log)). The data as a function of η are published only as a figure, so the measurement appears as its average over |η| < 0.5.
 
@@ -253,7 +253,7 @@ I apply the same selection to my events.
 
 With matched definitions PYTHIA agrees with the measurement within its uncertainty (ratio 0.987).
 
-**Multiplicity classes.** ALICE also sorts the collisions by how many particles hit its forward detector FT0 and measures the density in each class (Table 2 of the paper). I did the same with my comparison run, counting the charged particles in the FT0 acceptance (3.5 < η < 4.9 and −3.3 < η < −2.1):
+**Multiplicity classes.** ALICE also sorts the collisions by the signal in its forward detector FT0 and measures the density in each class (Table 2 of the paper). I did the same with my comparison run, approximating that signal by the number of charged particles in the FT0 acceptance (3.5 < η < 4.9 and −3.3 < η < −2.1):
 
 <div align="center">
 
