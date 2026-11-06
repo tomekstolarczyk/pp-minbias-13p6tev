@@ -326,5 +326,4 @@ ALICE
 - [AliceO2 Pythia configuration](https://github.com/AliceO2Group/AliceO2/blob/dev/Generators/share/egconfig/pythia8_inel.cfg): how ALICE sets up Pythia for minimum-bias pp
 
 ## License
-
-[MIT](LICENSE)
+This project is licensed under the terms of the MIT license. See the [LICENSE](LICENSE) file for details.
