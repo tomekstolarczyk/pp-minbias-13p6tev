@@ -185,8 +185,6 @@ root -l -b -q tests/check_task.C
 | 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [0, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
 | 4) Macro | opens `analysis.root`, uses the required axis labels and legends, every plot exists as PNG and PDF |
 
----
-
 ## 4. Reproducible by design
 
 The task asks for a reproducible production, so the whole repository is built around it:
@@ -202,8 +200,6 @@ The task asks for a reproducible production, so the whole repository is built ar
   so each number in this README and in the presentation can be traced back.
 - **Checked, not assumed.** Running `scripts/run_all.sh` again, also in a fresh clone of
   this repository, gives bin-for-bin identical histograms.
-
----
 
 ## 5. How I read the task
 
