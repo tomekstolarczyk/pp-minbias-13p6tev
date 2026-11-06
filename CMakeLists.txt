@@ -18,7 +18,7 @@ execute_process(COMMAND ${PYTHIA8_CONFIG} --libdir
     OUTPUT_VARIABLE PYTHIA8_LIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_library(PYTHIA8_LIBRARY pythia8 HINTS ${PYTHIA8_LIB_DIR} REQUIRED)
 
-# find ROOT: RIO provides TFile, Tree provides TTree, TreePlayer provides TTreeReader, Hist provides TH1D
+# find ROOT
 find_package(ROOT REQUIRED COMPONENTS RIO Tree TreePlayer Hist)
 
 add_executable(generate src/generate.cc)
