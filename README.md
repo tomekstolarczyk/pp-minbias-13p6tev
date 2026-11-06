@@ -5,6 +5,8 @@ At the end I hold the simulation up against a real measurement by ALICE at the s
 
 Author: Tomasz Stolarczyk
 
+<div align="center">
+
 <table>
   <tr>
     <td><img src="plots/histograms_overlay/multiplicity_all_ch.png" width="300"></td>
@@ -17,6 +19,8 @@ Author: Tomasz Stolarczyk
     <td><img src="plots/histograms_overlay/eta_shapes.png" width="300"></td>
   </tr>
 </table>
+
+</div>
 
 ## Contents
 
@@ -36,6 +40,8 @@ config/minbias.cmnd ──► generate ──► data/events.root ──► anal
    Pythia settings      Pythia 8      final-state tree     C++/ROOT      32 histograms             ROOT macro       PNG + PDF
 ```
 
+<div align="center">
+
 | Step | Program | What it does |
 | --- | --- | --- |
 | 1. Generation | [src/generate.cc](src/generate.cc) | Runs Pythia 8 with the settings from [config/minbias.cmnd](config/minbias.cmnd) and stores every final-state particle (`isFinal()`) of every event in a ROOT tree. |
@@ -43,6 +49,8 @@ config/minbias.cmnd ──► generate ──► data/events.root ──► anal
 | 3. Plots | [macros/draw_plots.C](macros/draw_plots.C) | Draws every histogram on its own canvas, plus overlays of two categories with their ratio below. |
 | 4. Check | [tests/check_task.C](tests/check_task.C) | Goes through the task text point by point and checks that the outputs satisfy it. |
 | Bonus | [macros/compare_alice.C](macros/compare_alice.C) | Compares the charged-particle density with ALICE at the same energy. |
+
+</div>
 
 The plots are in [plots/](plots/). Every run also leaves its log in [results/](results/), so each number quoted here can be traced back:
 
@@ -121,6 +129,8 @@ one value per final-state particle. Intermediate particles never reach the file.
 `hPt_<cat>`, `hEta_<cat>` and `hPhi_<cat>`. The multiplicity is filled once per event, also
 when it is zero; p<sub>T</sub>, η and φ once per particle.
 
+<div align="center">
+
 <table>
 <tr>
 <td valign="top">
@@ -147,6 +157,8 @@ when it is zero; p<sub>T</sub>, η and φ once per particle.
 </tr>
 </table>
 
+</div>
+
 ### Plots
 
 ```bash
@@ -160,6 +172,8 @@ The number of charged particles is always even, because the two protons bring a 
 
 ### Results at a glance
 
+<div align="center">
+
 | Category | ⟨N⟩ per event | ⟨p<sub>T</sub>⟩ [GeV] | outside \|η\| < 5 |
 | --- | --- | --- | --- |
 | all | 192.66 | 0.40 | 25.7% |
@@ -167,6 +181,8 @@ The number of charged particles is always even, because the two protons bring a 
 | π⁺ / π⁻ | 38.36 / 37.71 | 0.48 / 0.48 | 26.1% / 25.0% |
 | K⁺ / K⁻ | 4.24 / 4.12 | 0.68 / 0.68 | 27.7% / 26.0% |
 | p / p̄ | 3.82 / 2.60 | 0.69 / 0.78 | 50.3% / 29.0% |
+
+</div>
 
 One number per histogram type: the mean of `hN` (particles per collision), the mean of `hPt`, and the share of particles that `hEta` keeps in its underflow and overflow. The φ distributions are flat, so their mean is π/2 for every category and is left out. The means include the values outside the histogram ranges; every number is in [results/analysis.log](results/analysis.log).
 
@@ -178,12 +194,16 @@ root -l -b -q tests/check_task.C
 
 [tests/check_task.C](tests/check_task.C) reads the task text point by point and checks the outputs against it; `scripts/run_all.sh` runs it after the plots:
 
+<div align="center">
+
 | Task | What is checked |
 | --- | --- |
 | Technical requirements | the build used `-std=c++17`, ROOT major version 6, Pythia version 8 |
 | 1) Generation | pp beams, `Beams:eCM = 13600`, SoftQCD on, 100 000 events, total charge +2 in every event (only final-state particles in the tree) |
 | 2), 3) Histograms | all 32 names, each binning and range, one `hN` entry per event, every φ inside [0, π], each category holds exactly its particles (charge ≠ 0, PDG ±211, ±321, ±2212) |
 | 4) Macro | opens `analysis.root`, uses the required axis labels and legends, every plot exists as PNG and PDF |
+
+</div>
 
 ## 4. How I read the task
 
